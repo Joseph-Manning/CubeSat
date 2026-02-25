@@ -71,7 +71,7 @@ arr1 = []
 arr2 = []
 arr3 = []
 C_lux = A / 250
-C_RGB = B * 0.00026613247118877 * 5
+C_RGB = 28.803808
 arrV1 = []
 arrV2 = []
 arrV3 = []
@@ -119,7 +119,7 @@ for i in theta_reals:
 # plt.plot(theta_reals, np.cos((theta_reals-beta)*np.pi/180)**1.5)
 # plt.legend()
 # theta_reals = [0,1,2.5,5,-5,10,-15,20,30,40,50,60,70,80,90]
-theta_reals = [0,1,2.5,5,10,15,20,30]
+theta_reals = [0,1,2.5,5,10,15,20,30, 40]
 thetas = []
 distances = [0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0] # [m]
 predicted_distance_lux = []
@@ -176,5 +176,5 @@ for i in range(len(distances)):
 print("\nValues for angle found with all sensors")
 print("Distance [m]\t|\t\t\tAngles [deg]")
 print("\t\t|\t" + "\t|\t".join([str(i) for i in theta_reals]))
-for i in range(len(thetas)):
+for i in range(len(distances)):
     print(f"{distances[i]}\t\t|\t" + "\t|\t".join([str(round(j[i],4)) for j in thetas]))
