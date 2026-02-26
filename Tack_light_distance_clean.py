@@ -23,6 +23,9 @@ lux_sens02_angle = -beta
 rgb_sens_angle = 0
 light_sensing_sim = light_source_sensor_simulator()
 
+def lux(angle, n, m):
+    return np.exp(-(n * angle) ** 3) * np.cos(m * angle)
+
 for theta_i in theta_reals:
     # Predicted value for this angle, at a range of distances
     predicted_distance_lux_i = []
@@ -48,11 +51,20 @@ for theta_i in theta_reals:
         # angle between sensor normal and light source was zero.
         # Due to cosine behaviour at high angles, small errors make a big
         # difference.
-        Vs1_i = Vs1 / np.cos(theta + beta * np.pi/180)
-        Vs3_i = Vs3 / np.cos(theta - beta * np.pi/180)
+        
+        # Vs1_i = Vs1 / np.cos(theta + beta * np.pi/180)
+        # Vs3_i = Vs3 / np.cos(theta - beta * np.pi/180)
         # values for lux sensors very poor at high angles.
+        
+        a = 0.004666810926917832
+        b = 0.018159980049788253
+        # lux approx V = e ^ (-(a * angle) ^ 3) * cos(b * angle)
+        Vs1_i = Vs1 / lux(theta + beta, a, b)
+        Vs3_i = Vs3 / lux(theta - beta, a, b)
+        
         n = 1.088025599603545
         Vs2_i = Vs2 / np.cos(theta) ** n
+        
         # RGB sensor response better approximated by cos^n
         # Resulting distance prediction from rgb sensor very accurate
         # Only using RGB -> suseptible to noise
