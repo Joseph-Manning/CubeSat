@@ -1,5 +1,7 @@
-//Open loop code Mode 1
-//Author:Kieran Orr
+/*Open loop code Mode 1
+Load on to the arduino that features the SD card and the motor
+Does not need to interact with the PIX
+Author:Kieran Orr*/
 
 //Libraries
 //Data logging
@@ -33,7 +35,7 @@ void setup() {
   //for gyro
   Wire.begin();
   mux.begin();
-  mux.openChannel(3);
+  mux.openChannel(0);
   icm.begin_I2C();
   icm.setAccelRange(ICM20948_ACCEL_RANGE_4_G); //Sets max acceleration rate measureable
   icm.setGyroRange(ICM20948_GYRO_RANGE_500_DPS); // Sets max rotation rate measureable
@@ -50,7 +52,7 @@ void setup() {
 
 void loop() {
   //data collecting
-  mux.openChannel(3);
+  mux.openChannel(0);
   icm.getEvent(&accel, &gyro, &temp);
   
   //data logging
