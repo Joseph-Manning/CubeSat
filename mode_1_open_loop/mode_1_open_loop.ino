@@ -16,8 +16,8 @@ Author:Kieran Orr*/
 #include <Adafruit_Sensor.h>
 
 //naming
-TCA9548A mux; //multiplexer
-Adafruit_ICM20948 icm; // 9 DOF sensor
+TCA9548A mux;           //multiplexer
+Adafruit_ICM20948 icm;  // 9 DOF sensor
 
 //pins
 const int pulse = 9;
@@ -37,8 +37,8 @@ void setup() {
   mux.begin();
   mux.openChannel(0);
   icm.begin_I2C();
-  icm.setAccelRange(ICM20948_ACCEL_RANGE_4_G); //Sets max acceleration rate measureable
-  icm.setGyroRange(ICM20948_GYRO_RANGE_500_DPS); // Sets max rotation rate measureable
+  icm.setAccelRange(ICM20948_ACCEL_RANGE_4_G);    //Sets max acceleration rate measureable
+  icm.setGyroRange(ICM20948_GYRO_RANGE_500_DPS);  // Sets max rotation rate measureable
   //SD
   SD.begin(chipSelect);
   pinMode(check_read, OUTPUT);
@@ -54,15 +54,15 @@ void loop() {
   //data collecting
   mux.openChannel(0);
   icm.getEvent(&accel, &gyro, &temp);
-  
+
   //data logging
   // make a string for assembling the data to log:
   String dataString = "";
 
   // read sensor and append to the string:
-    float gyro_z = gyro.gyro.z;
-    dataString += String(gyro_z);
-  
+  float gyro_z = gyro.gyro.z;
+  dataString += String(gyro_z);
+
 
   // if the file is available, write to it:
   if (dataFile) {
@@ -70,10 +70,9 @@ void loop() {
     dataFile.println(dataString);
     dataFile.println(",");
     dataFile.println(t);
+  } else {
+    //as this is not connected to pc use led to check
+    digitalWrite(check_read, HIGH);
   }
-  else{
-   //as this is not connected to pc use led to check
-   digitalWrite(check_read, HIGH);
-  }
-  delay(50); //The delay between loops
+  delay(50);  //The delay between loops
 }
