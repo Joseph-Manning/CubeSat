@@ -1,0 +1,16 @@
+All libs found through Arduino IDE unless otherwise stated
+given in form id, purpose, author
+
+//Light sensing libraries
+#include "Adafruit_VEML7700.h" //Light sensor -adafruit
+#include "Adafruit_TCS34725.h" //RGB sensor -adafruit
+
+//data reading
+#include <Wire.h> //General wire -adafruit
+#include <TCA9548A.h> //Multiplexer -Jonathan Dempsey
+
+//Data logging
+#include <SPI.h> //idfk -adafruit
+#include <SD.h>  //idfk -adafruit
+
+//gyro
