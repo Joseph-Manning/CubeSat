@@ -10,13 +10,13 @@ Author:Kieran Orr*/
 //Gyro data reading
 #include <Wire.h> //General wire 
 #include <TCA9548A.h> //Multiplexer
-#include <Adafruit_ICM20948.h> //Needed for the IMU
+//#include <Adafruit_ICM20948.h> //Needed for the IMU
 #include <Adafruit_ICM20X.h>//Needed for IMU
 #include <Adafruit_Sensor.h> //sensor lab to run multiplexer
 //Light sensing libraries
 #include "Adafruit_VEML7700.h" //Light sensor
 #include "Adafruit_TCS34725.h" //RGB sensor
-]
+
 //naming
 TCA9548A mux; //multiplexer
 Adafruit_ICM20948 icm; // 9 DOF sensor

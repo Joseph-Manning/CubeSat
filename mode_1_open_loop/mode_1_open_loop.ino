@@ -8,12 +8,11 @@ Author:Kieran Orr*/
 #include <SPI.h>
 #include <SD.h>
 //Gyro data reading
-#include <Wire.h>
-#include <Adafruit_VEML7700.h>
-#include <TCA9548A.h>
-#include <Adafruit_ICM20948.h>
-#include <Adafruit_ICM20X.h>
-#include <Adafruit_Sensor.h>
+#include <Wire.h> //I2C 
+#include <TCA9548A.h> //multiplexer
+#include <Adafruit_ICM20948.h> //gyro acc
+//#include <Adafruit_ICM20X.h> //might not need this 
+//#include <Adafruit_Sensor.h> //optional to make change of sensors easier and data read out
 
 //naming
 TCA9548A mux;           //multiplexer

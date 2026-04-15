@@ -1,5 +1,7 @@
 //Libs and their pronouns
 #include <Wire.h>
+#include "Adafruit_VEML7700.h" //Light sensor
+#include "Adafruit_TCS34725.h" //RGB sensor
 
 
 // Constants
