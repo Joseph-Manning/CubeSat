@@ -14,3 +14,10 @@ given in form id, purpose, author
 #include <SD.h>  //idfk -adafruit
 
 //gyro
+#include <Adafruit_ICM20948.h> //gyro acc -included in below download
+//#include <Adafruit_ICM20X.h> //might not need this -download this from ide 
+//#include <Adafruit_Sensor.h> //optional to make change of sensors easier and data read out
+
+//mavlink
+#include <MAVLink.h> //provides mavlink commands
+#include <SoftwareSerial.h> //allows for serial monitor use, azuki kono, under some serial, oleg kalachev
