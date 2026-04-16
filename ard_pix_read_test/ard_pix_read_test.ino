@@ -1,5 +1,5 @@
-#include <MAVLink.h>
-#include <SoftwareSerial.h>
+#include <MAVLink.h> //provides mavlink commands
+#include <SoftwareSerial.h> //allows for serial monitor use
 
 //pins
 const int test = 3;
@@ -10,7 +10,6 @@ void setup() {
 Serial.begin(9600);
 pixSerial.begin(57600); //if this is unstable go to 20k range
 pinMode(test,INPUT);
-Serial.println("MAVLink heartbeat listener");
 }
 
 void loop() {
