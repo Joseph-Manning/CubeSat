@@ -14,7 +14,7 @@ Author:Kieran Orr*/
 //#include <Adafruit_ICM20X.h> //might not need this 
 //#include <Adafruit_Sensor.h> //optional to make change of sensors easier and data read out
 //Arduino to Pix
-#include "common/mavlink.h"
+#include <MAVLink.h>
 #include <SoftwareSerial.h>
 //naming
 TCA9548A mux;           //multiplexer
