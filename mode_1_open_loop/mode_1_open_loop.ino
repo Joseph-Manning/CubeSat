@@ -13,7 +13,9 @@ Author:Kieran Orr*/
 #include <Adafruit_ICM20948.h> //gyro acc
 //#include <Adafruit_ICM20X.h> //might not need this 
 //#include <Adafruit_Sensor.h> //optional to make change of sensors easier and data read out
-
+//Arduino to Pix
+#include "common/mavlink.h"
+#include <SoftwareSerial.h>
 //naming
 TCA9548A mux;           //multiplexer
 Adafruit_ICM20948 icm;  // 9 DOF sensor
@@ -23,7 +25,7 @@ const int pulse = 9;
 const int check_read = 3;
 const int chipSelect = 10;
 
-//ICU struc
+//ICM struc
 sensors_event_t accel;
 sensors_event_t gyro;
 sensors_event_t temp;

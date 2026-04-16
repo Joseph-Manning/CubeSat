@@ -10,9 +10,9 @@ Author:Kieran Orr*/
 //Gyro data reading
 #include <Wire.h> //General wire 
 #include <TCA9548A.h> //Multiplexer
-//#include <Adafruit_ICM20948.h> //Needed for the IMU
-#include <Adafruit_ICM20X.h>//Needed for IMU
-#include <Adafruit_Sensor.h> //sensor lab to run multiplexer
+#include <Adafruit_ICM20948.h> //Needed for the IMU
+//#include <Adafruit_ICM20X.h>//Needed for IMU
+//#include <Adafruit_Sensor.h> //sensor lab to normalise sensors
 //Light sensing libraries
 #include "Adafruit_VEML7700.h" //Light sensor
 #include "Adafruit_TCS34725.h" //RGB sensor
@@ -52,7 +52,7 @@ double dt, last_time, now;
 double kalman(double theta_model, double theta_gyro, double desired_value) {
   float K_kalman = 1;
   double theta_measured = theta_model * K_kalman + (1-K_kalman) * theta_gyro;
-  double error = desired_value - theta_measured
+  double error = desired_value - theta_measured;
   return error_output
 
 })
