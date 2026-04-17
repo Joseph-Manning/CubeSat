@@ -17,8 +17,5 @@ void setup() {
 }
 
 void loop() {
-mavlink_message_t msg;
-mavlink_status_t status
 
-  while (pixSerial.available()>0)
 }
