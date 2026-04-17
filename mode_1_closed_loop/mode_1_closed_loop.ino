@@ -53,9 +53,8 @@ double kalman(double theta_model, double theta_gyro, double desired_value) {
   float K_kalman = 1;
   double theta_measured = theta_model * K_kalman + (1-K_kalman) * theta_gyro;
   double error = desired_value - theta_measured;
-  return error_output
-
-})
+  return error;
+}
 
 //Define PD function 
 double pd(double error, double error_last, double dt) {
@@ -63,7 +62,7 @@ double pd(double error, double error_last, double dt) {
   float Kd = 1;
   double proportional = Kp*error;
   double derivative = Kd*(error-error_last)/dt;
-  double output = proportional + derivative;
+  double pd_output = proportional + derivative;
   return pd_output;
 }
 void setup() {
