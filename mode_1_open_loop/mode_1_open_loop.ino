@@ -14,7 +14,6 @@ Author:Kieran Orr*/
 //#include <Adafruit_ICM20X.h> //might not need this 
 //#include <Adafruit_Sensor.h> //optional to make change of sensors easier and data read out
 //Arduino to Pix
-#include <MAVLink.h>
 #include <SoftwareSerial.h>
 //naming
 TCA9548A mux;           //multiplexer
@@ -71,6 +70,7 @@ void loop() {
     dataFile.println(dataString);
     dataFile.println(",");
     dataFile.println(t);
+    dataFile.println(",");
   } else {
     //as this is not connected to pc use led to check
     digitalWrite(check_read, HIGH);
