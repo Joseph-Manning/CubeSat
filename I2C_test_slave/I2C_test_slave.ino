@@ -25,7 +25,8 @@ void requestEvent(){
 }
 void setup() {
   Wire.begin(SLAVE_ADD);
-  Wire.onRequest(receiveEvent);
+  Wire.onRequest(requestEvent);
+  Wire.onReceive(receiveEvent);
 
   Serial.begin(9600);
   Serial.println("slave side");
