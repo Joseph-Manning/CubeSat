@@ -3,6 +3,9 @@ Load on to the arduino that features the SD card and the motor
 Does not need to interact with the PIX
 Author:Kieran Orr*/
 
+/*test notes, once mode change is toggled it must be toggled off within a second for
+the test*/
+
 //Libraries
 //Data logging
 #include <SPI.h>
@@ -59,6 +62,7 @@ void setup() {
   SD.begin(chipSelect);
   digitalWrite(check_read, LOW);
   dataFile = SD.open("datalog.txt", FILE_WRITE);
+  //open serial moniter to test
   Serial.begin(9600);
 }
 
@@ -67,7 +71,42 @@ void loop() {
   if (rp_val < 900){
     digitalWrite(FWD, HIGH);
     analogWrite(ENA, 100);
-    delay(1000);
+    for(int i = 0; i = 199; i++){
+      //data collecting
+      mux.openChannel(0);
+      icm.getEvent(&accel, &gyro, &temp);
+
+      //data logging
+      // make a string for assembling the data to log:
+      String dataString = "";
+
+      // read sensor and append to the string:
+      float gyro_z = gyro.gyro.z;
+      dataString += String(gyro_z);
+      dataString += ",";
+      unsigned long t = millis();
+      dataString += t;
+      dataString += ",";
+      Serial.println(dataString);
+      //open the file
+      File dataFile = SD.open("datalog.txt", FILE_WRITE);
+  
+
+
+      // if the file is available, write to it:
+      if (dataFile) {
+        unsigned long t = millis();
+        dataFile.println(dataString);
+        dataFile.close();
+      } 
+      else {
+        //as this is not connected to pc use led to check
+        digitalWrite(check_read, HIGH);
+      }
+
+    delay(5);
+    }
+  
     digitalWrite(FWD, LOW);
     analogWrite(ENA, 0);
   }
@@ -85,16 +124,21 @@ void loop() {
   // read sensor and append to the string:
   float gyro_z = gyro.gyro.z;
   dataString += String(gyro_z);
+  dataString += ",";
+  unsigned long t = millis();
+  dataString += t;
+  dataString += ",";
   Serial.println(dataString);
+  //open the file
+  File dataFile = SD.open("datalog.txt", FILE_WRITE);
+  
 
 
   // if the file is available, write to it:
   if (dataFile) {
     unsigned long t = millis();
     dataFile.println(dataString);
-    dataFile.println(",");
-    dataFile.println(t);
-    dataFile.println(",");
+    dataFile.close();
   } else {
     //as this is not connected to pc use led to check
     digitalWrite(check_read, HIGH);
