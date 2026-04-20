@@ -20,9 +20,15 @@ TCA9548A mux;           //multiplexer
 Adafruit_ICM20948 icm;  // 9 DOF sensor
 
 //pins
-const int pulse = 9;
+//SD
 const int check_read = 3;
 const int chipSelect = 10;
+//motor control
+const int FWD = 7; //only need to be H/L
+const int BWD = 8; //only need to be H/L
+const int ENA = 6;
+//receive pin
+const int rp = 5; //receiver pin
 
 //ICM struc
 sensors_event_t accel;
@@ -32,6 +38,16 @@ sensors_event_t temp;
 File dataFile;
 
 void setup() {
+  //pin set up
+  pinMode(check_read, OUTPUT);
+  pinMode(FWD, OUTPUT);
+  pinMode(BWD, OUTPUT);
+  pinMode(ENA, OUTPUT);
+  pinMode(rp, INPUT);
+
+  digitalWrite(FWD, LOW);
+  digitalWrite(BWD, LOW);
+  analogWrite(ENA, 0);
   //for gyro
   Wire.begin();
   mux.begin();
@@ -41,16 +57,22 @@ void setup() {
   icm.setGyroRange(ICM20948_GYRO_RANGE_500_DPS);  // Sets max rotation rate measureable
   //SD
   SD.begin(chipSelect);
-  pinMode(check_read, OUTPUT);
   digitalWrite(check_read, LOW);
   dataFile = SD.open("datalog.txt", FILE_WRITE);
-  //pulse
-  analogWrite(pulse, 255);
-  delay(1000);
-  analogWrite(pulse, 0);
 }
 
 void loop() {
+  int rp_val = digitalRead(rp);
+  if (rp_val < 900){
+    digitalWrite(FWD, HIGH);
+    analogWrite(ENA, 100);
+    delay(1000);
+    digitalWrite(FWD, LOW);
+    analogWrite(ENA, 0);
+  }
+  else {
+    //leave for now
+  }    
   //data collecting
   mux.openChannel(0);
   icm.getEvent(&accel, &gyro, &temp);
