@@ -4,6 +4,7 @@ const int rp = 5; //receiver pin
 void setup() {
   pinMode(rp, INPUT);
 
+
 }
 
 void loop() {
@@ -17,7 +18,7 @@ void loop() {
   else if (rp_val > 1600){
     //seb -leave gyro for now
   }
-  else (){
+  else {
     //leave for now
   }
 }
