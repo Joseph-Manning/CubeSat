@@ -12,7 +12,7 @@ Author Kieran Orr*/
 int16_t rawZ;
 float GY_Z;
 
-void setup() {
+;void setup() {
   Wire.begin(); //I2C communication initiation
   Serial.begin(9600); //for monitering communication - not needed for I2C
 
@@ -31,6 +31,7 @@ void loop() {
   Wire.requestFrom(GYAD,2,1);
   rawZ = Wire.read() << 8 | Wire.read();
   GY_Z = rawZ/131; //for 250 deg/s defult
+  GY_Z = 8;
 
   //process GY_Z to byte array
   byte array[4];
@@ -39,7 +40,8 @@ void loop() {
   }
   //send GY_Z to slave
   Wire.beginTransmission(SLAD);
-  Wire.write(array, 4);
+  Wire.write(array, sizeof(float));
   Wire.endTransmission();
-  delay(500);
+  delay(100);
+  Serial.println(GY_Z);
 }
