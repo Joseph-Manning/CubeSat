@@ -28,12 +28,14 @@ void receiveEvent() {
     b_1 = Wire.read();
     b_2 = Wire.read();
     b_3 = Wire.read();
+    ass();
   }
   Serial.println("receive Event");
 }
 
 void setup() {
   serial.begin(9600);
+  Wire.begin(SLAD);
   Wire.onReceive(receiveEvent);
 
 
@@ -41,5 +43,5 @@ void setup() {
 
 void loop() {
   delay(500);
-  serial.println(GY_Z)
+  serial.println(GY_Z);
 }

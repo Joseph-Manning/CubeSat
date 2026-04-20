@@ -59,6 +59,7 @@ void setup() {
   SD.begin(chipSelect);
   digitalWrite(check_read, LOW);
   dataFile = SD.open("datalog.txt", FILE_WRITE);
+  Serial.begin(9600);
 }
 
 void loop() {
@@ -84,6 +85,7 @@ void loop() {
   // read sensor and append to the string:
   float gyro_z = gyro.gyro.z;
   dataString += String(gyro_z);
+  Serial.println(dataString);
 
 
   // if the file is available, write to it:
