@@ -25,9 +25,9 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 // Datasheet recommends dark plastic filter over sensor
 
 // sensor values
-float VL;
-double Vrgb;
-float VR;
+float VL; //lux on left
+double Vrgb; //rgb
+float VR; //Lux on right
 //float VL_;
 float Vrgb_;
 //float VR_;

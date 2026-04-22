@@ -117,12 +117,14 @@ void setup() {
   icm.setAccelRange(ICM20948_ACCEL_RANGE_4_G);    //Sets max acceleration rate measureable
   icm.setGyroRange(ICM20948_GYRO_RANGE_500_DPS);  // Sets max rotation rate measureable
 
+  //Light sensor set up
 }
 //======================================================================//
 void loop() {
   unsigned long RP_val = digitalRead(RP);
   if (RP_val < 990){
   //Light Tracking Operation- Mode 1
+  
   }
   else if (1400 < RP_val < 1600 ){
     //kieran - turn off
