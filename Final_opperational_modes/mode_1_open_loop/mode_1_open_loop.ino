@@ -27,8 +27,8 @@ Adafruit_ICM20948 icm;  // 9 DOF sensor
 const int check_read = 3;
 const int chipSelect = 10;
 //motor control
-const int FWD = 7; //only need to be H/L
-const int BWD = 8; //only need to be H/L
+const int FWD = 7; //only need to be H/L //IN1
+const int BWD = 8; //only need to be H/L //IN2
 const int ENA = 6;
 //receive pin
 const int rp = 5; //receiver pin
