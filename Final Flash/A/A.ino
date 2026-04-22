@@ -7,15 +7,19 @@ Joe
 Finley*/
 //======================================================================//
 /*Pin map
-5 To PIX GPIO 7
-6 To motor driver ENA
-7 To motor driver IN1
-8 To motor driver IN2
-10 Chip select on SD shield
-11 MOSI on SD shield
-12 MISO on SD shield
-13 SCK on SD shield
-3.3V on SD shield*/
+3 To PIX GPIO 7
+5 To motor driver ENA
+6 To motor driver IN1
+7 To motor driver IN2
+9 To Tanslational 1
+10 To Translational 2
+11 To Translational 3
+
+A4 Data pin (blue I2C connect)
+A5 Clock pin (yellow I2C connect)
+
+5V VCC for I2C
+GND for I2C*/
 //======================================================================//
 //Libraries
 //Light sensing libraries
@@ -29,19 +33,31 @@ Finley*/
 //Gyro
 #include <Adafruit_ICM20948.h> //gyro
 //======================================================================//
-//Naming
+//Define Objects
 //Gyro
 TCA9548A mux;           //multiplexer
 Adafruit_ICM20948 icm;  // 9 DOF sensor
+
+//Light sensors
+Adafruit_VEML7700 veml = Adafruit_VEML7700(); // lux
+Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_16X); // RGB
+// RGB very sensitive to interger overflow / saturation -> these values work with my phone flashlight
+// the test light may be brighter
+// Datasheet recommends dark plastic filter over sensor
 //======================================================================//
 //Define pins as needed
 //Mode switch pin
-const int RP = 5;
+const int RP = 3;
 
 //motor control
-const int FWD = 7; //only need to be H/L
-const int BWD = 8; //only need to be H/L
-const int ENA = 6;
+const int ENA = 5;
+const int IN1 = 6; //only need to be H/L
+const int IN2 = 7; //only need to be H/L
+
+//Signal intercept
+const int T1 = 9;
+const int T2 = 10;
+const int T3 = 11;
 //======================================================================//
 //Data struct
 //ICM struc
@@ -75,16 +91,20 @@ const double denom = R * 2 * sin(beta); // here so it only need to be run once
 const double n = 1.088025599603545; // fitted cos^n for rgb sensor
 const int cutoff = 10; // minimum sensor value before the realtive angle is assumer >90 deg
 // Cutoff value subject to further discretion
+//======================================================================//
 void setup() {
   //pinModes
   pinMode(RP, INPUT);
-  pinMode(FWD, OUTPUT);
-  pinMode(BWD, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
   pinMode(ENA, OUTPUT);
+  pinMode(T1, INPUT);
+  pinMode(T2, INPUT);
+  pinMode(T3, INPUT);
   
   //Initialise pins
-  digitalWrite(FWD, LOW);
-  digitalWrite(BWD, LOW);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
   analogWrite(ENA, 0);
 
   //I2C initialisation
