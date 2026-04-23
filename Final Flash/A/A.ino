@@ -45,6 +45,9 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 // the test light may be brighter
 // Datasheet recommends dark plastic filter over sensor
 //======================================================================//
+//Define address of slave Arduino
+#define SLAD 9
+//======================================================================//
 //Define pins as needed
 //Mode switch pin
 const int RP = 3;
@@ -75,9 +78,23 @@ float Vrgb_;
 //float VR_;
 
 // relative angular position of light source
-double theta;
+double theta_sen;
+
 // relative distance between light sensors and light source. [m] <- change values of C for [cm]
 float distance;
+
+//gyro-acc data
+float gyro_z;
+
+//model variables
+double theta_mod;
+
+//kalman filter/PD
+float error;
+float error_last;
+
+//time 
+double dt, last_time, now;
 //======================================================================//
 //Constants
 //Light sensing
@@ -91,6 +108,13 @@ const double denom = R * 2 * sin(beta); // here so it only need to be run once
 const double n = 1.088025599603545; // fitted cos^n for rgb sensor
 const int cutoff = 10; // minimum sensor value before the realtive angle is assumer >90 deg
 // Cutoff value subject to further discretion
+
+//Kalman const
+float K_kalman = 1;
+
+//PD const
+float Kp = 1;
+float Kd = 1;
 //======================================================================//
 void setup() {
   //pinModes
@@ -118,16 +142,181 @@ void setup() {
   icm.setGyroRange(ICM20948_GYRO_RANGE_500_DPS);  // Sets max rotation rate measureable
 
   //Light sensor set up
+  mux.openChannel(1);
+  veml.begin(); //initialise LUX
+
+  mux.openChannel(2);
+  tcs.begin();
+  tcs.setInterrupt(0); //turn RGB LED off
+
+  mux.openChannel(3);
+  veml.begin(); //initialise LUX
+  
+  delay(3000); //let it turn on
 }
 //======================================================================//
 void loop() {
   unsigned long RP_val = digitalRead(RP);
   if (RP_val < 990){
-  //Light Tracking Operation- Mode 1
-  
+    //Light Tracking Operation- Mode 1
+    //Light sensing
+    mux.openChannel(1);
+    VL = veml.readLux();
+
+    mux.openChannel(2);
+    uint16_t r, g, b, c;
+    tcs.getRawData(&r, &g, &b, &c);
+    // for the calculate lux function, if one of the values is zero (typically green)
+    // the normalisation does a div 0 and Vrgb goes to its maximum.
+    // Check if g is zero and add 1
+    if (g == 0) {g=1;}
+    Vrgb = tcs.calculateLux(r, g, b); // RGB sensor
+
+    mux.openChannel(3);
+    VR = veml.readLux();
+
+    //Read gyro 
+    mux.openChannel(0);
+    icm.getEvent(&accel, &gyro, &temp);
+    gyro_z = gyro.gyro.z;
+    
+    //Send Gyro data
+    //process gyro_z to byte array
+    byte Gyro_array[4];
+    for (int i=0; i<4; i++) {
+      Gyro_array[i] = ((byte*)(&gyro_z))[i];
+    }
+    //send gyro_z to slave
+    Wire.beginTransmission(SLAD);
+    Wire.write(Gyro_array, sizeof(float));
+    Wire.endTransmission();
+//======================================================================//
+    //respond to light readings
+    //logic to take optimal path
+    /*if both are in cutoff region, check which is closer.
+    if equal then should be 180 from source, turn right. may be sensitive to ambient
+    turn right*/
+    if (VL < cutoff && VR < cutoff) { 
+      if(VL < VR) {
+        theta_sen = 10;
+        distance = 0;
+        //turn right will have to change
+        digitalWrite(IN1, HIGH);
+        digitalWrite(IN2, LOW);
+        analogWrite(ENA, 180);
+
+      }
+      else if (VR < VL) {
+        //turn left
+        theta_sen = 10;
+        distance = 0;
+        digitalWrite(IN1, LOW);
+        digitalWrite(IN2, HIGH);
+        analogWrite(ENA, 180);      
+      }
+      else { 
+        //turn right
+        theta_sen = 10;
+        distance = 0;
+        digitalWrite(IN1, HIGH);
+        digitalWrite(IN2, LOW);
+        analogWrite(ENA, 180);
+      }
+    } 
+    //only one sensor in cut off region - run at lower speed
+    else if (VR < cutoff && VL > cutoff) { 
+      //turn right
+      theta_sen = 10;
+      distance = 0;
+      digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+      analogWrite(ENA, 100);      
+    }
+    else if (VL < cutoff && VR > cutoff) { //right for above
+      // Turn Left
+      theta_sen = 10;
+      distance = 0;
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+      analogWrite(ENA, 100);
+    } 
+//============================================================================//    
+    else { 
+      //in PD fine control region now - theta is calculated 
+      //should only run if all previous conditions false
+      // in view of L and R -> in view of rgb
+      // calc theta and distance
+      theta_sen = atan((VL - VR) / (denom * Vrgb)); // value for theta in radians
+      // Find normalised sensor values for distance calc
+      // If cos = 0 then div 0
+      // cos 0 -> light out of FOV, this code block shouldnt run
+      // Only considering distance from rgb sensor for now,
+      // until lux sensor accuracy can be improved
+      //VL_ = VL / cos(theta + beta);
+      Vrgb_ = Vrgb / pow(cos(theta_sen), n); // power is computational intensive, but huge boost to accuracy
+      //VR_ = VR / cos(theta - beta);
+
+      distance = C_rgb / pow(Vrgb_, 0.5);
+    }
+//============================================================================//
+//Model
+//Write system model for kalman filter
+    if (theta_sen != 10) {
+      //will pass running the model if in a search mode
+      //Write model here
+    }
+//============================================================================//
+    //Transmit theta_sen and theta_mod
+    //process theta_sen to byte array
+    byte theta_sen_array[8];
+    for (int i=0; i<8; i++) {
+      theta_sen_array[i] = ((byte*)(&theta_sen))[i];
+    }
+    //send theta_sen to slave
+    Wire.beginTransmission(SLAD);
+    Wire.write(theta_sen_array, sizeof(double));
+    Wire.endTransmission();
+
+    //process theta_mod to byte array
+    byte theta_mod_array[8];
+    for (int i=0; i<8; i++) {
+      theta_mod_array[i] = ((byte*)(&theta_mod))[i];
+    }
+    //send theta_mod to slave
+    Wire.beginTransmission(SLAD);
+    Wire.write(theta_mod_array, sizeof(double));
+    Wire.endTransmission();
+//============================================================================//
+    //Kalman Filter
+    //result in error
+//============================================================================//
+    //Transmit error
+    //process error to byte array
+    byte error_array[4];
+    for (int i=0; i<4; i++) {
+      error_array[i] = ((byte*)(&error))[i];
+    }
+    //send error to slave
+    Wire.beginTransmission(SLAD);
+    Wire.write(error_array, sizeof(float));
+    Wire.endTransmission();
+//============================================================================//
+    //PD output
+    double now = millis();
+    double dt = now - last_time;
+    double last_time = now;
+    float proportional = Kp*error;
+    float derivative = Kd*(error-error_last)/dt;
+    float pd_output = proportional + derivative;
+    error_last = error
+//============================================================================//    
   }
   else if (1400 < RP_val < 1600 ){
-    //kieran - turn off
+    //no mode
+    //kill motor
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, LOW);
+    analogWrite(ENA, 0);
   }
   else if (RP_val > 1800){
     //seb -leave gyro for now
