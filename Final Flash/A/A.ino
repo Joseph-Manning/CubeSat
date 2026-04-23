@@ -49,6 +49,8 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 #define SLAD 9
 //======================================================================//
 //Define pins as needed
+//5V logic pin
+const int logic = 2;
 //Mode switch pin
 const int RP = 3;
 
@@ -106,7 +108,7 @@ const float beta = 45 * PI / 180; // lux sensor mounting angle in radians
 const double denom = R * 2 * sin(beta); // here so it only need to be run once
 //const double denom = 3; // here so it only need to be run once
 const double n = 1.088025599603545; // fitted cos^n for rgb sensor
-const int cutoff = 10; // minimum sensor value before the realtive angle is assumer >90 deg
+const int cutoff = 500; // minimum sensor value before the realtive angle is assumer >90 deg
 // Cutoff value subject to further discretion
 
 //Kalman const
@@ -118,6 +120,7 @@ float Kd = 1;
 //======================================================================//
 void setup() {
   //pinModes
+  pinMode(logic, OUTPUT);
   pinMode(RP, INPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
@@ -130,6 +133,7 @@ void setup() {
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
   analogWrite(ENA, 0);
+  digitalWrite(logic, HIGH);
 
   //I2C initialisation
   Wire.begin();
