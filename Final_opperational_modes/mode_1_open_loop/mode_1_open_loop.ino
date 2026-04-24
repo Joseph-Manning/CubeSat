@@ -102,7 +102,7 @@ void loop() {
         digitalWrite(check_read, HIGH);
       }
 
-    delay(5);
+    delay(50);
     }
   
     digitalWrite(FWD, LOW);
