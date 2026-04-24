@@ -31,8 +31,7 @@ const int n = 1;
 //======================================================================//
 //define data stores
 //assemble on slave side
-volatile byte array[9];
-volatile int bytesReceived =  0;
+volatile byte array[6];
 volatile bool dataReady = false;
 
 //SD
@@ -66,9 +65,10 @@ void setup() {
 void loop() {
   if (dataReady) {
     dataReady = false;
-    if(array[4] = 0 && array) {
+    if(array[4] == false && array[5] == false) {
       memcpy(&gyro_z, &array, 4);
       counter++;
+      array[6] = {0};
     }
   }
   if (counter == n) {
@@ -92,7 +92,6 @@ void loop() {
     counter = 0;
   }
   else{
-    counter = 0;
   }
 
 }

@@ -94,7 +94,7 @@ void setup() {
   icm.begin_I2C();
   icm.setAccelRange(ICM20948_ACCEL_RANGE_4_G);    //Sets max acceleration rate measureable
   icm.setGyroRange(ICM20948_GYRO_RANGE_500_DPS);  // Sets max rotation rate measureable
-
+  delay(30000);
   //Test pulse
   for (int i = 0; i < 200; i++) {
     digitalWrite(IN1, HIGH);
@@ -121,21 +121,22 @@ void setup() {
 
 void loop() {
   digitalWrite(IN1, HIGH);
-  analogWrite( ENA, 140);
+  analogWrite(ENA, 140);
   //Read gyro 
   mux.openChannel(0);
   icm.getEvent(&accel, &gyro, &temp);
   gyro_z = gyro.gyro.z;
   //Send Gyro data
   //process gyro_z to byte array
-  byte Gyro_array[5];
+  byte Gyro_array[6];
   for (int i=0; i<4; i++) {
     Gyro_array[i] = ((byte*)(&gyro_z))[i];
   }
-  Gyro_array[4] = 0 //byte ID for slave side ID
+  Gyro_array[4] = 0; //byte ID for slave side ID
+  Gyro_array[5] = 0;
   //send gyro_z to slave
   Wire.beginTransmission(SLAD);
-  Wire.write(Gyro_array, sizeof(float));
+  Wire.write(Gyro_array, 6);
   Wire.endTransmission();
-  delay(5);
+  delay(25);
 }
