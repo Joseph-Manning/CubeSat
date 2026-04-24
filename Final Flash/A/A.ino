@@ -160,7 +160,7 @@ void setup() {
 }
 //======================================================================//
 void loop() {
-  unsigned long RP_val = digitalRead(RP);
+  unsigned long RP_val = pulseIn(RP);
   if (RP_val < 990){
     //Light Tracking Operation- Mode 1
     //Light sensing

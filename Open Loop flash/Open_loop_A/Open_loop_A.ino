@@ -4,7 +4,7 @@ Author Kieran Orr
 Contributors
 Seb
 Joe
-Finley*/
+Finlay*/
 //======================================================================//
 /*Pin map
 3 To PIX GPIO 7
@@ -95,7 +95,7 @@ void setup() {
   icm.setGyroRange(ICM20948_GYRO_RANGE_500_DPS);  // Sets max rotation rate measureable
 
   //Test pulse
-  for (i = 0; i = 199; i++) {
+  for (int i = 0; i < 200; i++) {
     digitalWrite(IN1, HIGH);
     analogWrite( ENA, 140);
     //Read gyro 
