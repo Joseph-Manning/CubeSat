@@ -4,7 +4,8 @@ Author Kieran Orr
 Contributors
 Seb
 Joe
-Finlay*/
+Finlay
+Navya*/
 //======================================================================//
 /*Pin map
 3 To PIX GPIO 7
@@ -127,10 +128,11 @@ void loop() {
   gyro_z = gyro.gyro.z;
   //Send Gyro data
   //process gyro_z to byte array
-  byte Gyro_array[4];
+  byte Gyro_array[5];
   for (int i=0; i<4; i++) {
     Gyro_array[i] = ((byte*)(&gyro_z))[i];
   }
+  Gyro_array[4] = 0 //byte ID for slave side ID
   //send gyro_z to slave
   Wire.beginTransmission(SLAD);
   Wire.write(Gyro_array, sizeof(float));

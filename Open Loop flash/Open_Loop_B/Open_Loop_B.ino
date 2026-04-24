@@ -31,7 +31,7 @@ const int n = 1;
 //======================================================================//
 //define data stores
 //assemble on slave side
-volatile byte array[8];
+volatile byte array[9];
 volatile int bytesReceived =  0;
 volatile bool dataReady = false;
 
@@ -47,9 +47,8 @@ int counter;
 //======================================================================//  
 //define function for data recieved
 void receiveEvent(int check_len) {
-  bytesReceived = check_len;
-  for (int i = 0; i< check_len; i++) {
-    array[i] = Wire.read();
+  for (int i = 0; i < check_len; i++) {
+    array[i] = Wire.read(); //general buffer array
   }
   dataReady = true;
 }  
@@ -57,7 +56,7 @@ void receiveEvent(int check_len) {
 void setup() {
   Wire.begin(SLAD);
   Wire.onReceive(receiveEvent);
-  counter = 0
+  counter = 0;
 
   //SD
   SD.begin(chipSelect);
@@ -67,8 +66,12 @@ void setup() {
 void loop() {
   if (dataReady) {
     dataReady = false;
-    
+    if(array[4] = 0 && array) {
+      memcpy(&gyro_z, &array, 4);
+      counter++;
+    }
   }
+  if (counter == n) {
     //data logging
     // make a string for assembling the data to log:
     String dataString = "";
@@ -83,10 +86,10 @@ void loop() {
     File dataFile = SD.open("datalog.txt", FILE_WRITE);
     // if the file is available, write to it:
     if (dataFile) {
-      unsigned long t = millis();
       dataFile.println(dataString);
       dataFile.close();
-    }
+    } 
+    counter = 0;
   }
   else{
     counter = 0;
