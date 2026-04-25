@@ -94,29 +94,25 @@ void setup() {
 }
 
 void loop() {
-  RP_val = pulseIn(RP, HIGH);
+  RP_val = pulseIn(RP, HIGH, 30000);
   if (RP_val < 990) {
     if (dataReady) {
       dataReady = false;
       if (array[4] == 0 && array[5] == 0) {
-        memcpy(&theta_sen, &array, 4);
-        thetaReady = 1;
-        array[7] = { 0 };
+        memcpy(&theta_sen, array, 4);
+        thetaReady = 1;    
       }
       if (array[4] == 1 && array[5] == 0) {
-        memcpy(&gyro_z, &array, 4);
+        memcpy(&gyro_z, array, 4);
         gyroReady = 1;
-        array[7] = { 0 };
       }
       if (array[4] == 0 && array[5] == 1) {
-        memcpy(&error, &array, 4);
+        memcpy(&error, array, 4);
         errorReady = 1;
-        array[7] = { 0 };
       }
       if (array[4] == 1 && array[5] == 1) {
-        memcpy(&motor_pwm, &array, 4);
+        memcpy(&motor_pwm, Farray, 4);
         motorReady = 1;
-        array[7] = { 0 };
       }
     }
     if (gyroReady == 1 && thetaReady == 1 && errorReady == 1 && motorReady == 1) {

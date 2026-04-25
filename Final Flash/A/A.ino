@@ -32,6 +32,9 @@ GND for I2C*/
 
 //Gyro
 #include <Adafruit_ICM20948.h>  //gyro
+
+//maths
+#include <math.h>
 //======================================================================//
 //Define Objects
 //Gyro
@@ -170,7 +173,7 @@ void setup() {
 }
 //======================================================================//
 void loop() {
-  RP_val = pulseIn(RP, HIGH);
+  RP_val = pulseIn(RP, HIGH, 30000);
   if (RP_val < 990) {
     //Light Tracking Operation- Mode 1
     //Light sensing
@@ -196,7 +199,7 @@ void loop() {
     turn right*/
     if (VL < cutoff && VR < cutoff) {
       if (VL < VR) {
-        //need to move clockwise - 
+        //need to move clockwise -
         theta_sen = 10;
         distance = 0;
         motor_pwm = 180;
@@ -261,7 +264,7 @@ void loop() {
     }
 
     //============================================================================//
-    //Transmit theta_sen 
+    //Transmit theta_sen
     //process theta_sen to byte array
     byte theta_sen_array[6];
     for (int i = 0; i < 8; i++) {
@@ -290,7 +293,7 @@ void loop() {
     Gyro_array[5] = 0;
     //send gyro_z to slave
     Wire.beginTransmission(SLAD);
-    Wire.write(Gyro_array,  6);
+    Wire.write(Gyro_array, 6);
     Wire.endTransmission();
     //============================================================================//
     //Model
@@ -304,6 +307,9 @@ void loop() {
     //============================================================================//
     //Kalman Filter
     //result in error
+    if (theta_sen != 10) {
+      error = theta_sen;
+    }
     //============================================================================//
     //Transmit error
     //process error to byte array
@@ -319,17 +325,35 @@ void loop() {
     Wire.endTransmission();
     //============================================================================//
     //PD output
-    double now = millis();
-    double dt = now - last_time;
-    double last_time = now;
-    float proportional = Kp * error;
-    float derivative = Kd * (error - error_last) / dt;
-    float pd_output = proportional + derivative;
-    error_last = error;
-    //============================================================================//
-    //Wrap the pd_output to motor command
-    //============================================================================//
-    //execute based on direction and pwm command (read if error was negitive, make positive for pd)
+    if (theta_sen != 10) {
+      double now = millis();
+      double dt = now - last_time;
+      double last_time = now;
+      float proportional = Kp * error;
+      //float derivative = Kd * (error - error_last) / dt;
+      float derivative = Kd * gyro_z;
+      float pd_output = proportional + derivative;
+      error_last = error;
+      //============================================================================//
+      //Wrap the pd_output to motor command
+      motor_pwm = pd_output * 31.875;
+      //============================================================================//
+      //execute based on direction and pwm command (read if error was negitive, make positive for pd)
+      if (motor_pwm < 0) {
+        motor_pwm = fabs(motor_pwm);
+        digitalWrite(IN1, LOW);
+        digitalWrite(IN2, HIGH);
+        analogWrite(ENA, motor_pwm);
+      }
+      if (motor_pwm > 0) {
+        digitalWrite(IN1, HIGH);
+        digitalWrite(IN2, LOW);
+        analogWrite(ENA, motor_pwm);
+      }
+      if (motor_pwm == 0) {
+        analogWrite(ENA, motor_pwm);
+      }
+    }
     //============================================================================//
     //Transmit motor command
     byte motor_pwm_array[6];
@@ -343,8 +367,7 @@ void loop() {
     Wire.write(error_array, 6);
     Wire.endTransmission();
     //============================================================================//
-  } 
-  else if (1400 < RP_val < 1600) {
+  } else if (1400 < RP_val < 1600) {
     //no mode
     //kill motor
     digitalWrite(IN1, LOW);
