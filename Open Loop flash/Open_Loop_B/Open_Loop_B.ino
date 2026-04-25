@@ -65,7 +65,7 @@ void setup() {
 void loop() {
   if (dataReady) {
     dataReady = false;
-    if(array[4] == false && array[5] == false) {
+    if(array[4] == 1 && array[5] == 0) {
       memcpy(&gyro_z, &array, 4);
       counter++;
       array[6] = {0};

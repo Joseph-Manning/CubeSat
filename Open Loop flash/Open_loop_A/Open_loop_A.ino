@@ -105,10 +105,12 @@ void setup() {
     gyro_z = gyro.gyro.z;
     //Send Gyro data
     //process gyro_z to byte array
-    byte Gyro_array[4];
+    byte Gyro_array[6];
     for (int i=0; i<4; i++) {
       Gyro_array[i] = ((byte*)(&gyro_z))[i];
     }
+    Gyro_array[4] = 1; //byte ID for slave side ID
+    Gyro_array[5] = 0;
     //send gyro_z to slave
     Wire.beginTransmission(SLAD);
     Wire.write(Gyro_array, sizeof(float));
