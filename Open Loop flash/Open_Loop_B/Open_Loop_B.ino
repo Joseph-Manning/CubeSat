@@ -7,7 +7,7 @@ Joe
 Finlay*/
 //======================================================================//
 //Libraries
-#include <Wire.h> //included for I2C communication
+#include <Wire.h>  //included for I2C communication
 
 //Data logging
 #include <SPI.h>
@@ -27,7 +27,7 @@ const int chipSelect = 10;
 //======================================================================//
 //define consts
 //n of data values to save in mode 1 3 data points n = 3
-const int n = 1; 
+const int n = 1;
 //======================================================================//
 //define data stores
 //assemble on slave side
@@ -36,21 +36,24 @@ volatile bool dataReady = false;
 
 //SD
 File dataFile;
-//======================================================================//  
+//======================================================================//
 //define global variables
 //data to save
 float gyro_z;
 
 //data saving
 int counter;
-//======================================================================//  
+//======================================================================//
 //define function for data recieved
 void receiveEvent(int check_len) {
-  for (int i = 0; i < check_len; i++) {
-    array[i] = Wire.read(); //general buffer array
-  }
-  dataReady = true;
-}  
+  if (check_len == 6) {
+      for (int i = 0; i < 6; i++) array[i] = Wire.read();
+      dataReady = true;
+  } else {
+      while (Wire.available()) Wire.read(); // flush stuck data
+}
+
+}
 //======================================================================//
 void setup() {
   Wire.begin(SLAD);
@@ -59,16 +62,15 @@ void setup() {
 
   //SD
   SD.begin(chipSelect);
-  dataFile = SD.open("datalog.txt", FILE_WRITE);
+  dataFile = SD.open("datalog1.txt", FILE_WRITE);
 }
 //======================================================================//
 void loop() {
   if (dataReady) {
     dataReady = false;
-    if(array[4] == 1 && array[5] == 0) {
-      memcpy(&gyro_z, &array, 4);
+    if (array[4] == 1 && array[5] == 0) {
+      memcpy(&gyro_z, array, 4);
       counter++;
-      array[6] = {0};
     }
   }
   if (counter == n) {
@@ -82,16 +84,12 @@ void loop() {
     unsigned long t = millis();
     dataString += t;
     dataString += ",";
-    //open the file
-    File dataFile = SD.open("datalog.txt", FILE_WRITE);
     // if the file is available, write to it:
     if (dataFile) {
       dataFile.println(dataString);
-      dataFile.close();
-    } 
+      dataFile.flush();
+    }
     counter = 0;
+  } else {
   }
-  else{
-  }
-
 }
