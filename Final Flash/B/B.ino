@@ -64,6 +64,8 @@ float gyro_z;
 float theta_sen;
 float error;
 float motor_pwm;
+
+int counter = 1;// save every 20 cycles
 //======================================================================//
 //define function for data recieved
 void receiveEvent(int check_len) {
@@ -142,12 +144,13 @@ void loop() {
       dataString += String(motor_pwm);
       dataString += ",";
       //open the file
-      File dataFile = SD.open("datalog.txt", FILE_WRITE);
+      if (counter == 1) {File dataFile = SD.open("datalog.txt", FILE_WRITE);}
       // if the file is available, write to it:
       if (dataFile) {
         dataFile.println(dataString);
-        dataFile.close();
+        if (counter == 20) {dataFile.close(); counter = 0;}
       }
+      counter += 1;
       gyroReady = 0;
       thetaReady = 0;
       errorReady = 0;
