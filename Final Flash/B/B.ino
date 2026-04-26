@@ -92,7 +92,8 @@ void setup() {
 
   //SD
   SD.begin(chipSelect);
-  dataFile = SD.open("datalog.txt", FILE_WRITE);
+  File dataFile = SD.open("datalog.txt", FILE_WRITE);
+  dataFile.println("Time [ms], Error [rad], Theta [rad], Command [PWM], Omega [rad/s]");
 }
 
 void loop() {
@@ -144,11 +145,11 @@ void loop() {
       dataString += String(motor_pwm);
       dataString += ",";
       //open the file
-      if (counter == 1) {File dataFile = SD.open("datalog.txt", FILE_WRITE);}
+      if (counter == 1) {File dataFile = SD.open("datalog.txt", FILE_WRITE);} // see if we can get away without declaring FIle everytime
       // if the file is available, write to it:
       if (dataFile) {
         dataFile.println(dataString);
-        if (counter == 20) {dataFile.close(); counter = 0;}
+        if (counter == 10) {dataFile.close(); counter = 0;}
       }
       counter += 1;
       gyroReady = 0;
