@@ -109,6 +109,7 @@ float sample_time = 1.0;                                  // most recent time in
 
 // Motor command
 int motor_pwm;
+bool flash = false; // for flashing during TRACKING MODE 2
 
 //==================================== CONSTANTS ==================================//
 #define MUX_ADDR 0x70
@@ -220,7 +221,7 @@ void setup() {
   Serial.println("Setup complete, starting countdown...");
   delay(1000);  // let it turn on
   Serial.println("Countdown complete");
-}]
+}
 
 //======================================================= MAIN LOOP ===================================================
 
@@ -306,6 +307,9 @@ void loop() {
     // Light is in one lux sensor's FOV
     // only one sensor in cut off region - run at lower speed
     else if (not(VR > cutoff && VL > cutoff)) {  // One sensor below cutoff
+      // Flash LED
+      digitalWrite(LED, flash);
+      flash = not flash;
       Serial.println("MODE TWO");
       if (VL > VR) {  // Light is in left FOV
         // Turn counter-clockwise
@@ -329,6 +333,7 @@ void loop() {
     // Theta can be found, distance neglected
     // PD control
     else {
+      digitalWrite(LED, HIGH);
       Serial.println("MODE THREE");
       // ============================= CALCULATE THETA ===============================//
       // USING LIGHT SENSING
@@ -369,7 +374,7 @@ void loop() {
       float P = Kp * error;  //change to theta if the model/ sensor smoothing is done
       //float derivative = Kd * (error - error_last) / dt;
       float D = Kd * gyro_z;  // alternatively, could differentiate theta (less sensitive to noise) - we do need some filter
-      float pd_output = P + D;]
+      float pd_output = P + D;
       error_last = theta;
       // transmit error
       //Transmit error
@@ -428,7 +433,7 @@ void loop() {
     Wire.write(motor_pwm_array, 6);
     Wire.endTransmission();
     //
-    //    // Joe - "This is cool af"
+    // Joe - "This is cool af"
   }
   //============================================================================//
   else if (RP_val > 1400 && RP_val < 1600) {
