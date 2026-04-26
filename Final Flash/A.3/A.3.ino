@@ -7,6 +7,7 @@ Finley*/
 //======================================================================//
 /*Pin map
 3 To PIX GPIO 7
+4 LOGIC
 5 To motor driver ENA
 6 To motor driver IN1
 7 To motor driver IN2
@@ -48,7 +49,7 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 
 //Define pins as needed
 //5V logic pin
-const int logic = 2;
+const int logic = 4;
 
 //Mode switch pin
 const int RP = 3;
@@ -95,6 +96,10 @@ float error_last;
 bool Kalman_valid;
 float d_theta;
 
+float P;
+float D;
+float pd_output;
+
 // Time [ms]
 double dt, last_time, now;
 
@@ -140,6 +145,7 @@ const int stall_rpm = 251;      // revolutions per minute
   // as a function of the current motor rpm
   return T0 * (1 - omega / (stall_rpm * 2 * PI / 60));
 }
+*/
 
 float five_bdif(float values[5], float times[5]) {
   // Computes a five-point backwards difference
@@ -151,7 +157,7 @@ float four_bdif(float values[4], float times[4]) {
   // Computes a five-point backwards difference
   float sample_time = times[index] - times[(index - 1) % 4];  // based on the most recent time interval
   return (11 * values[index] - 18 * values[(index - 1) % 4] + 9 * values[(index - 2) % 4] - 2 * values[(index - 3) % 4]) / (6 * sample_time);
-}*/
+}
 
 void selectChannel(uint8_t i) {
   // Select Multiplex channel to connect to
@@ -223,7 +229,7 @@ void setup() {
   Serial.println("Countdown complete");
 }
 
-//======================================================= MAIN LOOP ===================================================
+//======================================================= MAIN LOOP =====================================================
 
 void loop() {
   delay(1000);
@@ -369,16 +375,31 @@ void loop() {
         //can use mathmatical model here
       }
 
+      // Update history with present
+      theta_history[index] = theta;
+      time_history[index] = now;
+      d_theta = five_bdif(theta_history, time_history);      
+
       // MOTOR OUTPUT SET BY PD CONTROL
-      error = theta_sen;     //for transmition and formality
-      float P = Kp * error;  //change to theta if the model/ sensor smoothing is done
-      //float derivative = Kd * (error - error_last) / dt;
-      float D = Kd * gyro_z;  // alternatively, could differentiate theta (less sensitive to noise) - we do need some filter
-      float pd_output = P + D;
+      error = theta;     //for transmition and formality
+      P = Kp * error;  // change to theta if the model/ sensor smoothing is done
+
+      // Check if theta data is recent enough to use
+      if ((time_history[(index - 4) % 5] - time_history[index]) < 5 * dt) { // if oldest data point is within 5 time intervals
+        d_theta = five_bdif(theta_history, time_history); // use five point backwards difference to differentiate theta
+      }
+      else {
+        d_theta = gyro_z; // approximate d_theta using gyro data
+      }
+
+      D = Kd * gyro_z;
+      pd_output = P + D;
       error_last = theta;
-      // transmit error
-      //Transmit error
-      //process error to byte array
+
+      index = (index + 1) % 5; // move current index along
+
+      // Transmit error
+      // process error to byte array
       byte error_array[6];
       for (int i = 0; i < 4; i++) {
         error_array[i] = ((byte*)(&error))[i];
