@@ -93,7 +93,7 @@ void setup() {
   //SD
   SD.begin(chipSelect);
   File dataFile = SD.open("datalog.txt", FILE_WRITE);
-  dataFile.println("Time [ms], Error [rad], Theta [rad], Command [PWM], Omega [rad/s]");
+  dataFile.println("Time [ms], Theta [rad], Omega [rad/s], Error [rad], Command [PWM]");
 }
 
 void loop() {
