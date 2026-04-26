@@ -1,17 +1,16 @@
 /*Final script to flash to arduino A
 This is the master on the I2C bus
-Author Kieran Orr
+Authors Kieran, Joe
 Contributors
 Seb
-Joe
 Finley*/
 //======================================================================//
 /*Pin map
-2 To LED
 3 To PIX GPIO 7
 5 To motor driver ENA
 6 To motor driver IN1
 7 To motor driver IN2
+8 To LED
 9 To Tanslational 1
 10 To Translational 2
 11 To Translational 3
@@ -24,7 +23,7 @@ GND for I2C*/
 //================================ LIBRARIES ======================================//
 #include <math.h>
 
-// Light sensing 
+// Light sensing
 #include "Adafruit_VEML7700.h"  //Light sensor -adafruit
 #include "Adafruit_TCS34725.h"  //RGB sensor -adafruit
 
@@ -45,11 +44,12 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 
 //================================= ADRESSES ======================================//
 //Define address of slave Arduino
-//#define SLAD 9
+#define SLAD 9
 
 //Define pins as needed
 //5V logic pin
 const int logic = 2;
+
 //Mode switch pin
 const int RP = 3;
 
@@ -72,7 +72,6 @@ const int T3 = 11;
 sensors_event_t accel;
 sensors_event_t gyro;
 sensors_event_t Temp;
-// From adafruit
 
 //================================ GLOBAL VARIABLES =============================//
 
@@ -85,10 +84,10 @@ float VL;
 double Vrgb;
 float VR;
 
-float theta_sen; // relative angular position of light source [rad]
-float gyro_z; //gyro-acc data
-float gyro_z_mod; //model variables
-float theta_inertia; // predicted theta based on gyro value
+float theta_sen;      // relative angular position of light source [rad]
+float gyro_z;         //gyro-acc data
+float gyro_z_mod;     //model variables
+float theta_inertia;  // predicted theta based on gyro value
 
 //kalman filter/PD
 float error;
@@ -100,13 +99,13 @@ float d_theta;
 double dt, last_time, now;
 
 // History
-const int n_history = 5;                    // how many data points (inclusing present to store)
-int index = 0;                              // index of present, incremented by 1 each loop
-float theta_history[n_history] = {10, 10, 10, 10, 10};  // previous values of theta
-float d_theta_history[n_history] = {0, 0, 0, 0, 0};    // previous values of d(theta)/dt
-float torque_history[n_history] = {0, 0, 0, 0, 0};      // previous value of torque at the motor [N m]
-float time_history[n_history] = {0, 0, 0, 0, 0};        // time elapsed at time of datapoint
-float sample_time = 1.0;                                // most recent time interval [ms]
+const int n_history = 5;                                  // how many data points (inclusing present to store)
+int index = 0;                                            // index of present, incremented by 1 each loop
+float theta_history[n_history] = { 10, 10, 10, 10, 10 };  // previous values of theta
+float d_theta_history[n_history] = { 0, 0, 0, 0, 0 };     // previous values of d(theta)/dt
+float torque_history[n_history] = { 0, 0, 0, 0, 0 };      // previous value of torque at the motor [N m]
+float time_history[n_history] = { 0, 0, 0, 0, 0 };        // time elapsed at time of datapoint
+float sample_time = 1.0;                                  // most recent time interval [ms]
 
 // Motor command
 int motor_pwm;
@@ -118,43 +117,43 @@ const float R = 1 / 2.1;                 // value depends on gain, lux response 
 const float beta = 45 * PI / 180;        // lux sensor mounting angle in radians
 const double denom = R * 2 * sin(beta);  // here so it only need to be run once
 const double n = 1.088025599603545;      // fitted cos^n for rgb sensor
-const int cutoff = 50;                  // minimum sensor value before the realtive angle is assumer >90 deg
+const int cutoff = 50;                   // minimum sensor value before the realtive angle is assumer >90 deg
 // Cutoff value subject to further discretion
 
 // Kalman const - ratio of model prediction to sensor data
 const float K_kalman = 0;
 // Gyro const - ratio of gyro data to light data
-const float K_gyro = 0; // change later
+const float K_gyro = 0;  // change later
 
 // PD constants
 const float Kp = 1;
 const float Kd = 1;
 
-const float T0 = 0.018 * 9.81; // Stall torque[Nm]
-const int stall_rpm = 251; // revolutions per minute
+const float T0 = 0.018 * 9.81;  // Stall torque[Nm]
+const int stall_rpm = 251;      // revolutions per minute
 
 
 //==================================== SETUP ==================================//
-float max_torque(float omega) {
+/*float max_torque(float omega) {
   // Returns the maximum torque available (at full duty cycle)
   // as a function of the current motor rpm
-  return T0 * (1 - omega / (stall_rpm * 2 * PI / 60)) ;
+  return T0 * (1 - omega / (stall_rpm * 2 * PI / 60));
 }
 
 float five_bdif(float values[5], float times[5]) {
   // Computes a five-point backwards difference
-  float sample_time = times[index] - times[(index - 1) % 5]; // based on the most recent time interval
-  return (3 * values[(index - 4) % 5] - 16 * values[(index - 3) % 5] + 36 * values[(index - 2) % 5] - 48 * values[(index -1) % 5] + 25 * values[index]) / (12 * sample_time);
+  float sample_time = times[index] - times[(index - 1) % 5];  // based on the most recent time interval
+  return (3 * values[(index - 4) % 5] - 16 * values[(index - 3) % 5] + 36 * values[(index - 2) % 5] - 48 * values[(index - 1) % 5] + 25 * values[index]) / (12 * sample_time);
 }
 
 float four_bdif(float values[4], float times[4]) {
   // Computes a five-point backwards difference
-  float sample_time = times[index] - times[(index - 1) % 4]; // based on the most recent time interval
+  float sample_time = times[index] - times[(index - 1) % 4];  // based on the most recent time interval
   return (11 * values[index] - 18 * values[(index - 1) % 4] + 9 * values[(index - 2) % 4] - 2 * values[(index - 3) % 4]) / (6 * sample_time);
-}
+}*/
 
 void selectChannel(uint8_t i) {
-  // Select Multiplex channel to connect to 
+  // Select Multiplex channel to connect to
   if (i > 3) return;
   Wire.beginTransmission(MUX_ADDR);
   Wire.write(1 << i);
@@ -197,13 +196,19 @@ void setup() {
   Serial.println("Lux");
   selectChannel(1);
   // Initialise LUX
-  if (!veml.begin()) {Serial.println("VEML7700 not found on Port 1");}
-  else {Serial.println("Lux on port 1 found");}
-  
+  if (!veml.begin()) {
+    Serial.println("VEML7700 not found on Port 1");
+  } else {
+    Serial.println("Lux on port 1 found");
+  }
+
   selectChannel(3);
-  if (!veml.begin()) {Serial.println("VEML7700 not found on Port 3");}
-  else {Serial.println("Lux on port 3 found");}
-  
+  if (!veml.begin()) {
+    Serial.println("VEML7700 not found on Port 3");
+  } else {
+    Serial.println("Lux on port 3 found");
+  }
+
   // Initialise RGB
   selectChannel(2);
   if (!tcs.begin()) {
@@ -215,80 +220,84 @@ void setup() {
   Serial.println("Setup complete, starting countdown...");
   delay(1000);  // let it turn on
   Serial.println("Countdown complete");
-}
+}]
 
 //======================================================= MAIN LOOP ===================================================
 
 void loop() {
   delay(1000);
-  //===============================================GET DATA FROM ALL SENSORS ==========================================
-  Serial.println("In loop");
-  // Read Gyro
-  selectChannel(0); // 9 DoF IMU sensor
-  icm.getEvent(&accel, &gyro, &Temp);
-  gyro_z = gyro.gyro.z; // may have to flip sign
-  Serial.print("Gyro : "); Serial.println(gyro_z);
-
-  // Send Gyro data
-  // process gyro_z to byte array
-  byte Gyro_array[6];
-  for (int i = 0; i < 4; i++) {
-    Gyro_array[i] = ((byte*)(&gyro_z))[i];
-  }
-  Gyro_array[4] = 1;  // byte ID for slave side ID 01
-  Gyro_array[5] = 0;
-  //send gyro_z to slave
-  Wire.beginTransmission(SLAD);
-  Wire.write(Gyro_array, 6);
-  Wire.endTransmission();
-  
-  // Read left lux sensor
-  selectChannel(1);
-  VL = veml.readLux();
-  Serial.print("Lux 1 : "); Serial.println(VL);
-  // Read RGB sensor
-  selectChannel(2);
-  uint16_t r, g, b, c;
-  tcs.getRawData(&r, &g, &b, &c);
-  // for the calculate lux function, if one of the values is zero (typically green)
-  // the normalisation does a div 0 and Vrgb goes to its maximum.
-  // Check if g is zero and add 1
-  if (g == 0) { g = 1; }
-  Vrgb = tcs.calculateLux(r, g, b);  // RGB sensor
-  Serial.print("Vrgb : "); Serial.println(Vrgb);
-
-  // Read right lux sensor
-  selectChannel(3);
-  VR = veml.readLux();
-  Serial.print("Lux 3 : "); Serial.println(VR);
-
-  // =============================================== SELECT TRACKING MODE ============================================
-  RP_val = pulseIn(RP, HIGH, 30000);
-  // MODES 1 AND 2  ==> Light outside of theta calculation range: PD control unavailable,
-  // get light within FOV (+-45 deg)
-  // MODE 3         ==> Light within FOV, control using PD 
-  // MODE 4         ==> Light locked on to, adjust for small pertubations using lux values, not theta
+  // =============================================== SELECT OPERATIONAL MODE ============================================
+  RP_val = pulseIn(RP, HIGH, 30000);  //read the signal high width to determine operational mode
   RP_val = 900;
-  if (RP_val < 990) { // Get clarity on this logic query
+  if (RP_val < 990) {  // Get clarity on this logic query
+    //===============================================GET DATA FROM ALL SENSORS ==========================================
+    Serial.println("In loop");
+    // Read Gyro
+    selectChannel(0);  // 9 DoF IMU sensor
+    icm.getEvent(&accel, &gyro, &Temp);
+    gyro_z = gyro.gyro.z;
+    gyro_z = gyro_z * -1;  // it does think clockwise is positive - needs to be flipped for transmition -fine for pd (une - gain)
+    Serial.print("Gyro : ");
+    Serial.println(gyro_z);
 
+    // Send Gyro data
+    // process gyro_z to byte array
+    byte Gyro_array[6];
+    for (int i = 0; i < 4; i++) {
+      Gyro_array[i] = ((byte*)(&gyro_z))[i];
+    }
+    Gyro_array[4] = 1;  // byte ID for slave side ID 01
+    Gyro_array[5] = 0;
+    //send gyro_z to slave
+    Wire.beginTransmission(SLAD);
+    Wire.write(Gyro_array, 6);
+    Wire.endTransmission();
+
+    // Read left lux sensor
+    selectChannel(1);
+    VL = veml.readLux();
+    Serial.print("Lux 1 : ");
+    Serial.println(VL);
+    // Read RGB sensor
+    selectChannel(2);
+    uint16_t r, g, b, c;
+    tcs.getRawData(&r, &g, &b, &c);
+    // for the calculate lux function, if one of the values is zero (typically green)
+    // the normalisation does a div 0 and Vrgb goes to its maximum.
+    // Check if g is zero and add 1
+    if (g == 0) { g = 1; }
+    Vrgb = tcs.calculateLux(r, g, b);  // RGB sensor
+    Serial.print("Vrgb : ");
+    Serial.println(Vrgb);
+
+    // Read right lux sensor
+    selectChannel(3);
+    VR = veml.readLux();
+    Serial.print("Lux 3 : ");
+    Serial.println(VR);
+    //======================================================= SEARCH/TRACK MODE LOGIC ===================================================
+    // MODES 1 AND 2  ==> Light outside of theta calculation range: PD control unavailable,
+    // get light within FOV (+-45 deg)
+    // MODE 3         ==> Light within FOV, control using PD
+    // MODE 4         ==> Light locked on to, adjust for small pertubations using lux values, not theta - not sure about this
     // ===== MODE ONE =====
     // Light outside of both sensor's FOV
     if (VL < cutoff && VR < cutoff) {
       Serial.println("MODE ONE");
       if (VL < VR) {
         //need to move clockwise -
-        theta_sen = 10.0; // outside of possible range - indicates theta unknown
+        theta_sen = 10.0;  // outside of possible range - indicates theta unknown
         theta = 10;
-        motor_pwm = 180; // 70% Power
-        digitalWrite(IN1, HIGH); // Sets motor polarity
-        digitalWrite(IN2, LOW);  // Motor spins left -> CubeSat turns right (clockwise)
+        motor_pwm = 180;          // 70% Power
+        digitalWrite(IN1, HIGH);  // Sets motor polarity
+        digitalWrite(IN2, LOW);   // Motor spins left -> CubeSat turns right (clockwise)
       } else {
         // VR < VL OR VL == VR
         //turn anticlockwise
         theta_sen = 10.0;
         theta = 10;
         motor_pwm = 180;
-        digitalWrite(IN1, LOW); // Motor spins right -> CubeSat turns left (counter-clockwise)
+        digitalWrite(IN1, LOW);  // Motor spins right -> CubeSat turns left (counter-clockwise)
         digitalWrite(IN2, HIGH);
       }
     }
@@ -296,16 +305,16 @@ void loop() {
     // ===== MODE TWO =====
     // Light is in one lux sensor's FOV
     // only one sensor in cut off region - run at lower speed
-    else if (not (VR > cutoff && VL > cutoff)){ // One sensor below cutoff
+    else if (not(VR > cutoff && VL > cutoff)) {  // One sensor below cutoff
       Serial.println("MODE TWO");
-      if (VL > VR) { // Light is in left FOV
+      if (VL > VR) {  // Light is in left FOV
         // Turn counter-clockwise
         theta_sen = 10;
         theta = 10;
         motor_pwm = 100;
         digitalWrite(IN1, LOW);
         digitalWrite(IN2, HIGH);
-      } else { // Light is in right FOV
+      } else {  // Light is in right FOV
         // Turn clockwise
         theta_sen = 10;
         theta = 10;
@@ -314,7 +323,7 @@ void loop() {
         digitalWrite(IN2, LOW);
       }
     }
-    
+
     // ===== MODE THREE =====
     // Light within both sensor's FOV
     // Theta can be found, distance neglected
@@ -323,52 +332,67 @@ void loop() {
       Serial.println("MODE THREE");
       // ============================= CALCULATE THETA ===============================//
       // USING LIGHT SENSING
-      if (Vrgb == 0.0) {Vrgb=0.1;}
+      if (Vrgb == 0.0) { Vrgb = 0.1; }
       theta_sen = atan((VL - VR) / (denom * Vrgb));  // value for theta in radians
-      Serial.print("theta_sen : ");Serial.println(theta_sen);
+      Serial.print("theta_sen : ");
+      Serial.println(theta_sen);
       // TIME LOOP RESET
       dt = millis() - last_time;
       last_time = millis();
-      
+
       // INTEGRATING GYRO
       if (dt < 500) {
-        theta_inertia = theta + gyro_z * dt; // adds d(theta)/dt = gyro_z to previous value for theta
-      
+        theta_inertia = theta + gyro_z * dt;  // adds d(theta)/dt = gyro_z to previous value for theta
+
         // === BALANCE LIGHT SENSING WITH INERTIAL SENSING ===
         theta = (theta_inertia * K_gyro + theta_sen) / (1 + K_gyro);
       } else {
-        theta = theta_sen; // no filtering for first theta value in 500 ms
+        theta = theta_sen;  // no filtering for first theta value in 500 ms
       }
-      
+
       // =================================== PROCESS THETA ===========================//
-      
+
       // PASS THROUGH KARMAN FILTER
       // Check if light has been in FOV for long enough
       Kalman_valid = true;
-      for (int i=0; i<n_history; i=i+1){
-        if (theta_history[i] == 10 || theta_history[i] == 10.0){
+      for (int i = 0; i < n_history; i = i + 1) {
+        if (theta_history[i] == 10 || theta_history[i] == 10.0) {
           Kalman_valid = false;
         }
       }
       if (Kalman_valid) {
         //can use mathmatical model here
-      }   
-      
+      }
+
       // MOTOR OUTPUT SET BY PD CONTROL
-      float P = Kp * theta;
+      error = theta_sen;     //for transmition and formality
+      float P = Kp * error;  //change to theta if the model/ sensor smoothing is done
       //float derivative = Kd * (error - error_last) / dt;
-      float D = Kd * gyro_z; // alternatively, could differentiate theta (less sensitive to noise)
-      float pd_output = P + D;
+      float D = Kd * gyro_z;  // alternatively, could differentiate theta (less sensitive to noise) - we do need some filter
+      float pd_output = P + D;]
       error_last = theta;
+      // transmit error
+      //Transmit error
+      //process error to byte array
+      byte error_array[6];
+      for (int i = 0; i < 4; i++) {
+        error_array[i] = ((byte*)(&error))[i];
+      }
+      error_array[4] = 0;
+      error_array[5] = 1;
+      //send error to slave
+      Wire.beginTransmission(SLAD);
+      Wire.write(error_array, 6);
+      Wire.endTransmission();
+
       //============================================================================//
-      //Wrap the pd_output to motor command, direction set by lux sensors
-      motor_pwm = fabs(pd_output * 31.875);
+      //Wrap the pd_output to motor command, direction set by lux sensors -kind of?
+      motor_pwm = fabs(pd_output * 31.875);  //write a wrap line max expected/ 255
       // Clockwise OR Counter-clockwise
-      if (pd_output < 0) { // Turn clockwise
+      if (pd_output < 0) {  // Turn clockwise
         digitalWrite(IN1, HIGH);
         digitalWrite(IN2, LOW);
-      }
-      else { // Turn counter-clockwise
+      } else {  // Turn counter-clockwise
         digitalWrite(IN1, LOW);
         digitalWrite(IN2, HIGH);
       }
@@ -401,12 +425,12 @@ void loop() {
     motor_pwm_array[5] = 1;
     //send error to slave
     Wire.beginTransmission(SLAD);
-    Wire.write(error_array, 6);
+    Wire.write(motor_pwm_array, 6);
     Wire.endTransmission();
-//    
-//    // Joe - "This is cool af"
+    //
+    //    // Joe - "This is cool af"
   }
-    //============================================================================//
+  //============================================================================//
   else if (RP_val > 1400 && RP_val < 1600) {
     //no mode
     //kill motor
@@ -418,5 +442,6 @@ void loop() {
   } else {
     //leave for now
   }
-  Serial.print("Theta : ");Serial.println(theta * 180 / PI);
+  Serial.print("Theta : ");
+  Serial.println(theta * 180 / PI);
 }
