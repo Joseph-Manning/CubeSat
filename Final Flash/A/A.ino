@@ -327,9 +327,9 @@ void loop() {
     //============================================================================//
     //PD output
     if (theta_sen != 10) {
-      double now = millis();
-      double dt = now - last_time;
-      double last_time = now;
+      now = millis();
+      dt = now - last_time;
+      last_time = now;
       float proportional = Kp * error;
       //float derivative = Kd * (error - error_last) / dt;
       float derivative = Kd * gyro_z;
@@ -359,15 +359,16 @@ void loop() {
     //Transmit motor command
     byte motor_pwm_array[6];
     for (int i = 0; i < 4; i++) {
-      error_array[i] = ((byte*)(&motor_pwm))[i];
+      motor_pwm_array[i] = ((byte*)(&motor_pwm))[i];
     }
-    error_array[4] = 1;
-    error_array[5] = 1;
+    motor_pwm_array[4] = 1;
+    motor_pwm_array[5] = 1;
     //send error to slave
     Wire.beginTransmission(SLAD);
     Wire.write(error_array, 6);
     Wire.endTransmission();
-    //============================================================================//
+  }
+  //============================================================================//
   else if (RP_val > 1400 && RP_val < 1600) {
     //no mode
     //kill motor
