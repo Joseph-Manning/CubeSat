@@ -7,6 +7,7 @@ Joe
 Finley*/
 //======================================================================//
 /*Pin map
+2 To LED
 3 To PIX GPIO 7
 5 To motor driver ENA
 6 To motor driver IN1
@@ -367,7 +368,7 @@ void loop() {
     Wire.write(error_array, 6);
     Wire.endTransmission();
     //============================================================================//
-  } else if (1400 < RP_val < 1600) {
+  else if (RP_val > 1400 && RP_val < 1600) {
     //no mode
     //kill motor
     digitalWrite(IN1, LOW);
