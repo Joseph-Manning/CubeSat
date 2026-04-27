@@ -287,10 +287,12 @@ void loop() {
     // get light within FOV (+-45 deg)
     // MODE 3         ==> Light within FOV, control using PD
     // MODE 4         ==> Light locked on to, adjust for small pertubations using lux values, not theta - not sure about this
+    
     // ===== MODE ONE =====
     // Light outside of both sensor's FOV
     if (VL < cutoff && VR < cutoff) {
       Serial.println("MODE ONE");
+      digitalWrite(LED, LOW);
       if (VL < VR) {
         //need to move clockwise -
         theta_sen = 10.0;  // outside of possible range - indicates theta unknown
