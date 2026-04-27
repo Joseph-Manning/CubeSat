@@ -123,7 +123,7 @@ const float R = 1 / 2.1;                 // value depends on gain, lux response 
 const float beta = 45 * PI / 180;        // lux sensor mounting angle in radians
 const double denom = R * 2 * sin(beta);  // here so it only need to be run once
 const double n = 1.088025599603545;      // fitted cos^n for rgb sensor
-const int cutoff = 500;                   // minimum sensor value before the realtive angle is assumer >90 deg
+const int cutoff = 300;                   // minimum sensor value before the realtive angle is assumer >90 deg
 // Cutoff value subject to further discretion
 
 // Kalman const - ratio of model prediction to sensor data
@@ -133,7 +133,7 @@ const float K_gyro = 0.2;  // change later
 
 // PD constants
 const float Kp = 4;
-const float Kd = 8;
+const float Kd = 2;
 
 const float T0 = 0.018 * 9.81;  // Stall torque[Nm]
 const int stall_rpm = 251;      // revolutions per minute
@@ -225,7 +225,7 @@ void setup() {
   }
 
   Serial.println("Setup complete, starting countdown...");
-  delay(20000);  // let it turn on
+  delay(10000);  // let it turn on
   Serial.println("Countdown complete");
 }
 
@@ -243,7 +243,7 @@ void loop() {
     selectChannel(0);  // 9 DoF IMU sensor
     icm.getEvent(&accel, &gyro, &Temp);
     gyro_z = gyro.gyro.z;
-    gyro_z = gyro_z; * -1;  // it does think clockwise is positive - needs to be flipped for transmition -fine for pd (une - gain)
+    gyro_z = gyro_z * -1;  // it does think clockwise is positive - needs to be flipped for transmition -fine for pd (une - gain)
     Serial.print("Gyro : ");
     Serial.println(gyro_z);
 
@@ -396,7 +396,7 @@ void loop() {
       }
 
       D = Kd * gyro_z;
-      pd_output = P + D;
+      pd_output = (P + D) / 50;
       error_last = theta;
 
       index = (index + 1) % 5; // move current index along
@@ -418,7 +418,7 @@ void loop() {
       //Wrap the pd_output to motor command, direction set by lux sensors -kind of?
       motor_pwm = fabs(pd_output * 31.875);  //write a wrap line max expected/ 255
       // Clockwise OR Counter-clockwise
-      if (pd_output > 0) {  // Turn clockwise
+      if (pd_output < 0) {  // Turn clockwise
         digitalWrite(IN1, HIGH);
         digitalWrite(IN2, LOW);
       } else {  // Turn counter-clockwise
@@ -443,7 +443,10 @@ void loop() {
 
     // ============= OUTPUT ============
     // Write PWM to motor pin
+    if (motor_pwm > 255) {motor_pwm = 255;}
+
     analogWrite(ENA, motor_pwm);
+    Serial.println(motor_pwm);
 
     // Send Motor command
     byte motor_pwm_array[6];
