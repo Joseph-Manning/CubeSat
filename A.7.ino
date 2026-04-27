@@ -135,8 +135,8 @@ const float K_kalman = 0;
 const float K_gyro = 0;  // change later
 
 // PD constants
-const float Kp = 4;
-const float Kd = 2;
+const float Kp = 50;
+const float Kd = 30;
 
 const float T0 = 0.018 * 9.81;  // Stall torque[Nm]
 const int stall_rpm = 251;      // revolutions per minute
@@ -402,7 +402,8 @@ void loop() {
 
     // ============= OUTPUT ============
     // Write PWM to motor pin
-    motor_pwm += Kp * p + Kd * d; // if positive -> turn right
+    if (d > 3) {d=3;} 
+    motor_pwm = Kp * p + Kd * d; // if positive -> turn right
 
     if (motor_pwm > 255) {motor_pwm = 255;}
     if (motor_pwm < -255) {motor_pwm = -255;}
@@ -416,7 +417,7 @@ void loop() {
     }
     
     // Write PWM to motor pin
-    analogWrite(ENA, motor_pwm);
+    analogWrite(ENA, abs(motor_pwm));
 
     Serial.print("p:");Serial.print(p);Serial.print(",d:");Serial.print(d);
     Serial.print(",PWM:");Serial.print(motor_pwm);
