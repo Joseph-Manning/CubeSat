@@ -69,10 +69,14 @@ int counter = 1;// save every 20 cycles
 //======================================================================//
 //define function for data recieved
 void receiveEvent(int check_len) {
-  for (int i = 0; i < check_len; i++) {
-    array[i] = Wire.read();  //general buffer array
+  if (check_len == 6) {
+    for (int i = 0; i < 6; i++) {
+      array[i] = Wire.read();
+    }
+    dataReady = 1;
+  } else {
+    while (Wire.available()) Wire.read(); // flush garbage
   }
-  dataReady = 1;
 }
 //======================================================================//
 void setup() {
@@ -114,7 +118,7 @@ void loop() {
         errorReady = 1;
       }
       if (array[4] == 1 && array[5] == 1) {
-        memcpy(&motor_pwm, Farray, 4);
+        memcpy(&motor_pwm, array, 4);
         motorReady = 1;
       }
     }
