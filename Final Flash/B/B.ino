@@ -145,13 +145,15 @@ void loop() {
       dataString += String(motor_pwm);
       dataString += ",";
       //open the file
-      if (counter == 1) {File dataFile = SD.open("datalog.txt", FILE_WRITE);} // see if we can get away without declaring FIle everytime
+      //if (counter == 1) {File dataFile = SD.open("datalog.txt", FILE_WRITE);} // see if we can get away without declaring FIle everytime
+      File dataFile = SD.open("datalog.txt", FILE_WRITE);
       // if the file is available, write to it:
       if (dataFile) {
         dataFile.println(dataString);
-        if (counter == 10) {dataFile.close(); counter = 0;}
+        dataFile.close();
+        //if (counter == 10) {dataFile.close(); counter = 0;}
       }
-      counter += 1;
+      //counter += 1;
       gyroReady = 0;
       thetaReady = 0;
       errorReady = 0;
