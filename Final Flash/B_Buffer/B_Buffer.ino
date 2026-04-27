@@ -95,20 +95,14 @@ bool getNextPacket(byte *out) {
 void setup() {
   pinMode(RP, INPUT);
 
-  // IMPORTANT: prevent I2C ISR from firing during SD init
-  noInterrupts();
-
-  // I2C slave setup
-  Wire.begin(SLAD);
-  Wire.onReceive(receiveEvent);
-
-  // SD card setup (safe because interrupts are OFF)
+  //spi first
   SD.begin(chipSelect);
   dataFile = SD.open("datalog.txt", FILE_WRITE);
   dataFile.println("Time [ms], Theta [rad], Omega [rad/s], Error [rad], Command [PWM]");
 
-  // Now safe to enable interrupts
-  interrupts();
+  // then I2C
+  Wire.begin(SLAD);
+  Wire.onReceive(receiveEvent);
 }
 //======================================================================//
 void loop() {
