@@ -58,7 +58,7 @@ void receiveEvent(int len) {
 void setup() {
   pinMode(RP, INPUT);
 
-  // --- SD FIRST (NO INTERRUPTS ACTIVE) ---
+  // --- SD FIRST (NO I2C ACTIVE) ---
   SD.begin(chipSelect);
   dataFile = SD.open("datalog.txt", FILE_WRITE);
   dataFile.println("Time [ms], Theta [rad], Omega [rad/s], Error [rad], Command [PWM]");
@@ -124,7 +124,7 @@ void loop() {
       dataString += String(motor_pwm);
       dataString += ",";
 
-      // --- SAFE SD WRITE ---
+      // --- SAFE SD WRITE (FILE KEPT OPEN) ---
       noInterrupts();
       dataFile.println(dataString);
       dataFile.flush();
