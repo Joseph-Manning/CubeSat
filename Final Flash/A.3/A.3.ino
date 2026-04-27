@@ -225,14 +225,14 @@ void setup() {
   }
 
   Serial.println("Setup complete, starting countdown...");
-  delay(1000);  // let it turn on
+  delay(30000);  // let it turn on
   Serial.println("Countdown complete");
 }
 
 //======================================================= MAIN LOOP =====================================================
 
 void loop() {
-  delay(1000);
+  delay(10);
   // =============================================== SELECT OPERATIONAL MODE ============================================
   RP_val = pulseIn(RP, HIGH, 30000);  //read the signal high width to determine operational mode
   RP_val = 900;
