@@ -3,7 +3,6 @@ This is the slave on the I2C bus
 Author Kieran Orr
 Contributors
 Seb
-Joe
 Finlay*/
 //======================================================================//
 //Libraries
@@ -32,7 +31,7 @@ GND shared with master GND*/
 //Mode ID pin
 const int RP = 9;
 //Fan pins
-const int T4 = 4;
+const int T4 = 3;
 const int H1 = 5;
 const int H2 = 6;
 
@@ -65,7 +64,7 @@ float theta_sen;
 float error;
 float motor_pwm;
 
-int counter = 1;// save every 20 cycles
+int counter = 1;  // save every 20 cycles
 //======================================================================//
 //define function for data recieved
 void receiveEvent(int check_len) {
@@ -107,7 +106,7 @@ void loop() {
       dataReady = false;
       if (array[4] == 0 && array[5] == 0) {
         memcpy(&theta_sen, array, 4);
-        thetaReady = 1;    
+        thetaReady = 1;
       }
       if (array[4] == 1 && array[5] == 0) {
         memcpy(&gyro_z, array, 4);
@@ -137,8 +136,7 @@ void loop() {
         dataString += ",";
         dataString += "Unknown";
         dataString += ",";
-      } 
-      else {
+      } else {
         dataString += String(theta_sen);
         dataString += ",";
         dataString += String(gyro_z);

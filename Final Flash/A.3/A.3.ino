@@ -123,17 +123,17 @@ const float R = 1 / 2.1;                 // value depends on gain, lux response 
 const float beta = 45 * PI / 180;        // lux sensor mounting angle in radians
 const double denom = R * 2 * sin(beta);  // here so it only need to be run once
 const double n = 1.088025599603545;      // fitted cos^n for rgb sensor
-const int cutoff = 50;                   // minimum sensor value before the realtive angle is assumer >90 deg
+const int cutoff = 300;                   // minimum sensor value before the realtive angle is assumer >90 deg
 // Cutoff value subject to further discretion
 
 // Kalman const - ratio of model prediction to sensor data
 const float K_kalman = 0;
 // Gyro const - ratio of gyro data to light data
-const float K_gyro = 0;  // change later
+const float K_gyro = 0.2;  // change later
 
 // PD constants
-const float Kp = 1;
-const float Kd = 1;
+const float Kp = 4;
+const float Kd = 2;
 
 const float T0 = 0.018 * 9.81;  // Stall torque[Nm]
 const int stall_rpm = 251;      // revolutions per minute
@@ -225,7 +225,7 @@ void setup() {
   }
 
   Serial.println("Setup complete, starting countdown...");
-  delay(30000);  // let it turn on
+  delay(10000);  // let it turn on
   Serial.println("Countdown complete");
 }
 
@@ -274,6 +274,7 @@ void loop() {
     // Check if g is zero and add 1
     if (g == 0) { g = 1; }
     Vrgb = tcs.calculateLux(r, g, b);  // RGB sensor
+    if (Vrgb < 1) {Vrgb = 10;}
     Serial.print("Vrgb : ");
     Serial.println(Vrgb);
 
@@ -395,7 +396,7 @@ void loop() {
       }
 
       D = Kd * gyro_z;
-      pd_output = P + D;
+      pd_output = (P + D) / 50;
       error_last = theta;
 
       index = (index + 1) % 5; // move current index along
@@ -442,7 +443,10 @@ void loop() {
 
     // ============= OUTPUT ============
     // Write PWM to motor pin
+    if (motor_pwm > 255) {motor_pwm = 255;}
+
     analogWrite(ENA, motor_pwm);
+    Serial.println(motor_pwm);
 
     // Send Motor command
     byte motor_pwm_array[6];
