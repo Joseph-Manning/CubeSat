@@ -38,6 +38,16 @@ const int H2 = 6;
 //SD
 const int chipSelect = 10;
 //======================================================================//
+// FIFO BUFFER DEFINITIONS
+#define PACKET_SIZE 6
+#define BUFFER_SIZE 40   // large enough to absorb bursts
+
+volatile byte packetBuffer[BUFFER_SIZE][PACKET_SIZE];
+volatile int writeIndex = 0;
+volatile int readIndex = 0;
+volatile int packetCount = 0;
+
+//======================================================================//
 //define data stores
 //assemble on slave side
 volatile byte array[7];
@@ -67,17 +77,30 @@ float motor_pwm;
 int counter = 1;  // save every 20 cycles
 //======================================================================//
 //define function for data recieved
-void receiveEvent(int check_len) {
-  if (check_len == 6) {
-    for (int i = 0; i < 6; i++) {
-      array[i] = Wire.read();
-    }
-    dataReady = 1;
+// ISR: store each full packet into FIFO
+void receiveEvent(int len) {
+  if (len != PACKET_SIZE) {
+    while (Wire.available()) Wire.read();
+    return;
+  }
+
+  // Copy packet into FIFO slot
+  for (int i = 0; i < PACKET_SIZE; i++) {
+    packetBuffer[writeIndex][i] = Wire.read();
+  }
+
+  // Advance write index
+  writeIndex = (writeIndex + 1) % BUFFER_SIZE;
+
+  // Handle overflow (drop oldest)
+  if (packetCount < BUFFER_SIZE) {
+    packetCount++;
   } else {
-    while (Wire.available()) Wire.read(); // flush garbage
+    readIndex = (readIndex + 1) % BUFFER_SIZE;
   }
 }
 //======================================================================//
+
 void setup() {
   //mode pin
   pinMode(RP, INPUT);
@@ -152,10 +175,7 @@ void loop() {
       // if the file is available, write to it:
       if (dataFile) {
         dataFile.println(dataString);
-        dataFile.close();
-        //if (counter == 10) {dataFile.close(); counter = 0;}
       }
-      //counter += 1;
       gyroReady = 0;
       thetaReady = 0;
       errorReady = 0;
