@@ -8,6 +8,12 @@ Author Kieran Orr*/
 //Define address of slave Arduino
 #define SLAD 9
 
+int freeMemory() {
+  char top;
+  extern char *__brkval, __bss_end;
+  return __brkval ? &top - __brkval : &top - &__bss_end;
+}
+
 //string for data
 String dataString = "";
 
@@ -17,6 +23,9 @@ volatile bool dataReady = 0;
 //SD
 const int chipSelect = 10;
 File dataFile;
+
+//define pins
+const int handshake = 8;
 
 //define function for data recieved
 void receiveEvent(int ansLen) {
@@ -30,29 +39,42 @@ void receiveEvent(int ansLen) {
 }
 
 void setup() {
+  pinMode(handshake, OUTPUT);
+  digitalWrite(handshake, 1);
+  dataReady = 0;
   Wire.begin(SLAD);
   Wire.onReceive(receiveEvent);
 
   //serial to check
   Serial.begin(9600);
+  delay(200);
 
   //SD open
-  //SD
   SD.begin(chipSelect);
-  dataFile = SD.open("cumFile.txt", FILE_WRITE);
+  dataFile = SD.open("cock.txt", FILE_WRITE);
+  delay(200);
 }
 
 void loop() {
   //print data if ready
   if (dataReady == 1) {
-    Serial.println(dataString);
+    Wire.end();
+    digitalWrite(handshake, 0);
+    Serial.println("data ready");
     if (dataFile) {
-      noInterrupts();
       dataFile.println(dataString);
       dataFile.flush();
-      interrupts();
+      Serial.println(dataString);
+      dataString = "";
+      dataReady = 0;
+      digitalWrite(handshake, 1);
+      Wire.begin(SLAD);
     }
-    dataReady = 0;
-    dataString = "";
   }
+  else{
+    Serial.println("data not ready");
+    Serial.println(dataString);
+    delay(1000);
+  }
+  Serial.println(freeMemory());
 }
