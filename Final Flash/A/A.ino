@@ -23,115 +23,56 @@ A5 Clock pin (yellow I2C connect)
 GND for I2C*/
 //======================================================================//
 //Libraries
-//Light sensing libraries
-#include "Adafruit_VEML7700.h"  //Light sensor -adafruit
-#include "Adafruit_TCS34725.h"  //RGB sensor -adafruit
-
-//I2C
-#include <Wire.h>      //General wire -adafruit
-#include <TCA9548A.h>  //Multiplexer -Jonathan Dempsey
-
-//Gyro
-#include <Adafruit_ICM20948.h>  //gyro
-
-//maths
+#include "Adafruit_VEML7700.h"
+#include <Wire.h>
+#include <TCA9548A.h>
+#include <Adafruit_ICM20948.h>
 #include <math.h>
+
 //======================================================================//
 //Define Objects
-//Gyro
-TCA9548A mux;           //multiplexer
-Adafruit_ICM20948 icm;  // 9 DOF sensor
+TCA9548A mux;
+Adafruit_ICM20948 icm;
+Adafruit_VEML7700 veml = Adafruit_VEML7700();
 
-//Light sensors
-Adafruit_VEML7700 veml = Adafruit_VEML7700();                                                 // lux
-Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_16X);  // RGB
-// RGB very sensitive to interger overflow / saturation -> these values work with my phone flashlight
-// the test light may be brighter
-// Datasheet recommends dark plastic filter over sensor
 //======================================================================//
-//Define address of] slave Arduino
 #define SLAD 9
-//======================================================================//
-//Define pins as needed
-//5V logic pin
+
+//Pins
 const int logic = 2;
-//Mode switch pin
 const int RP = 3;
-
-//motor control
 const int ENA = 5;
-const int IN1 = 6;  //only need to be H/L
-const int IN2 = 7;  //only need to be H/L
-
-//LED pin
+const int IN1 = 6;
+const int IN2 = 7;
 const int LED = 8;
-
-//Signal intercept
 const int T1 = 9;
 const int T2 = 10;
 const int T3 = 11;
+
 //======================================================================//
-//Data struct
-//ICM struc
+//Data structs
 sensors_event_t accel;
 sensors_event_t gyro;
 sensors_event_t temp;
+
 //======================================================================//
-//Global Variables
-//Mode ID
+//Globals
 unsigned long RP_val;
-//Light sensing
-float VL;
-double Vrgb;
-float VR;
-//float VL_;
-float Vrgb_;
-//float VR_;
-
-// relative angular position of light source
+float VL, VR;
 float theta_sen;
-
-// relative distance between light sensors and light source. [m] <- change values of C for [cm]
-float distance;
-
-//gyro-acc data
 float gyro_z;
-
-//model variables
-float gyro_z_mod;
-
-//kalman filter/PD
-float error;
-float error_last;
-
-//time
+float error, error_last;
 double dt, last_time, now;
-
-//motor command
 int motor_pwm;
+
 //======================================================================//
 //Constants
-//Light sensing
-//const double R = 0.2345762060349798; // ratio between lux and rgb sensor responses
-const float R = 0.5;             // value depends on gain
-const double C_rgb = 28.803808;  // Constant for normalised sensor response with distance
-//const float C_lux = 19.528; // lux sensor currently not used for distance, leave here incase
-const float beta = 45 * PI / 180;        // lux sensor mounting angle in radians
-const double denom = R * 2 * sin(beta);  // here so it only need to be run once
-//const double denom = 3; // here so it only need to be run once
-const double n = 1.088025599603545;  // fitted cos^n for rgb sensor
-const int cutoff = 500;              // minimum sensor value before the realtive angle is assumer >90 deg
-// Cutoff value subject to further discretion
-
-//Kalman const
-float K_kalman = 1;
-
-//PD const
+const int cutoff = 500;
 float Kp = 1;
 float Kd = 1;
+
 //======================================================================//
 void setup() {
-  //pinModes
   pinMode(logic, OUTPUT);
   pinMode(RP, INPUT);
   pinMode(IN1, OUTPUT);
@@ -141,242 +82,146 @@ void setup() {
   pinMode(T2, INPUT);
   pinMode(T3, INPUT);
 
-  // Initialise motor off
   motor_pwm = 0;
-  //Initialise pins
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
   analogWrite(ENA, motor_pwm);
   digitalWrite(logic, HIGH);
 
-  //I2C initialisation
   Wire.begin();
   mux.begin();
 
-  //Wake gyro
   mux.openChannel(0);
   icm.begin_I2C();
-  icm.setAccelRange(ICM20948_ACCEL_RANGE_4_G);    //Sets max acceleration rate measureable
-  icm.setGyroRange(ICM20948_GYRO_RANGE_500_DPS);  // Sets max rotation rate measureable
+  icm.setAccelRange(ICM20948_ACCEL_RANGE_4_G);
+  icm.setGyroRange(ICM20948_GYRO_RANGE_500_DPS);
 
-  //Light sensor set up
   mux.openChannel(1);
-  veml.begin();  //initialise LUX
-
-  mux.openChannel(2);
-  tcs.begin();
-  tcs.setInterrupt(0);  //turn RGB LED off
+  veml.begin();
 
   mux.openChannel(3);
-  veml.begin();  //initialise LUX
+  veml.begin();
 
-  delay(3000);  //let it turn on
+  delay(3000);
 }
+
 //======================================================================//
 void loop() {
+
   RP_val = pulseIn(RP, HIGH, 30000);
+
+  // ===================== MODE: TRACKING =====================
   if (RP_val < 990) {
-    //Light Tracking Operation- Mode 1
-    //Light sensing
+
+    // Read sensors
     mux.openChannel(1);
     VL = veml.readLux();
 
-    mux.openChannel(2);
-    uint16_t r, g, b, c;
-    tcs.getRawData(&r, &g, &b, &c);
-    // for the calculate lux function, if one of the values is zero (typically green)
-    // the normalisation does a div 0 and Vrgb goes to its maximum.
-    // Check if g is zero and add 1
-    if (g == 0) { g = 1; }
-    Vrgb = tcs.calculateLux(r, g, b);  // RGB sensor
-
     mux.openChannel(3);
     VR = veml.readLux();
-    //======================================================================//
-    //respond to light readings
-    //logic to take optimal path
-    /*if both are in cutoff region, check which is closer.
-    if equal then should be 180 from source, turn anticlockwise. may be sensitive to ambient
-    turn right*/
-    if (VL < cutoff && VR < cutoff) {
-      if (VL < VR) {
-        //need to move clockwise -
-        theta_sen = 10;
-        distance = 0;
-        motor_pwm = 180;
-        digitalWrite(IN1, HIGH);
-        digitalWrite(IN2, LOW);
-        analogWrite(ENA, motor_pwm);
 
-      } else if (VR < VL) {
-        //turn anticlockwise
-        theta_sen = 10;
-        distance = 0;
-        motor_pwm = 180;
-        digitalWrite(IN1, LOW);
-        digitalWrite(IN2, HIGH);
-        analogWrite(ENA, motor_pwm);
-      } else {
-        //turn anticlockwise
-        theta_sen = 10;
-        distance = 0;
-        motor_pwm = 180;
-        digitalWrite(IN1, LOW);
-        digitalWrite(IN2, HIGH);
-        analogWrite(ENA, motor_pwm);
-      }
-    }
-    //only one sensor in cut off region - run at lower speed
-    else if (VR < cutoff && VL > cutoff) {
-      //turn anticlockwise
+    // ===================== MODE 1: SEARCH =====================
+    if (VL < cutoff && VR < cutoff) {
       theta_sen = 10;
-      distance = 0;
-      motor_pwm = 100;
-      digitalWrite(IN1, LOW);
-      digitalWrite(IN2, HIGH);
-      analogWrite(ENA, motor_pwm);
-    } else if (VL < cutoff && VR > cutoff) {
-      // Turn clockwise
-      theta_sen = 10;
-      distance = 0;
-      motor_pwm = 100;
+      motor_pwm = 60;
       digitalWrite(IN1, HIGH);
       digitalWrite(IN2, LOW);
       analogWrite(ENA, motor_pwm);
     }
-    //============================================================================//
 
+    // ===================== MODE 2 & 3 =====================
     else {
-      //in PD fine control region now - theta is calculated
-      //should only run if all previous conditions false
-      // in view of L and R -> in view of rgb
-      // calc theta and distance
-      theta_sen = atan((VL - VR) / (denom * Vrgb));  // value for theta in radians
-      // Find normalised sensor values for distance calc
-      // If cos = 0 then div 0
-      // cos 0 -> light out of FOV, this code block shouldnt run
-      // Only considering distance from rgb sensor for now,
-      // until lux sensor accuracy can be improved
-      //VL_ = VL / cos(theta + beta);
-      Vrgb_ = Vrgb / pow(cos(theta_sen), n);  // power is computational intensive, but huge boost to accuracy
-      //VR_ = VR / cos(theta - beta);
 
-      distance = C_rgb / pow(Vrgb_, 0.5);
+      float sum = VL + VR;
+      if (sum < 1) sum = 1;
+
+      theta_sen = (VL - VR) / sum;
     }
 
-    //============================================================================//
-    //Transmit theta_sen
-    //process theta_sen to byte array
+    // ===================== SEND THETA =====================
     byte theta_sen_array[6];
-    for (int i = 0; i < 8; i++) {
-      theta_sen_array[i] = ((byte*)(&theta_sen))[i];
-    }
-    //data ID 00 for light sensing theta
+    memcpy(theta_sen_array, &theta_sen, 4);
     theta_sen_array[4] = 0;
     theta_sen_array[5] = 0;
-    //send theta_sen to slave
     Wire.beginTransmission(SLAD);
     Wire.write(theta_sen_array, 6);
     Wire.endTransmission();
-    //============================================================================//
-    //Read gyro
+
+    // ===================== READ GYRO =====================
     mux.openChannel(0);
     icm.getEvent(&accel, &gyro, &temp);
     gyro_z = gyro.gyro.z;
 
-    //Send Gyro data
-    //process gyro_z to byte array
+    // SEND GYRO
     byte Gyro_array[6];
-    for (int i = 0; i < 4; i++) {
-      Gyro_array[i] = ((byte*)(&gyro_z))[i];
-    }
-    Gyro_array[4] = 1;  //byte ID for slave side ID 01
+    memcpy(Gyro_array, &gyro_z, 4);
+    Gyro_array[4] = 1;
     Gyro_array[5] = 0;
-    //send gyro_z to slave
     Wire.beginTransmission(SLAD);
     Wire.write(Gyro_array, 6);
     Wire.endTransmission();
-    //============================================================================//
-    //Model
-    //Write system model for kalman filter
-    if (theta_sen != 10) {
-      //will pass running the model if in a search mode
-      //WRONG DICKHEAD you need to clean the gyro data and send the improvement
-      //so fix above as well, send on same address
-      //Write model here
-    }
-    //============================================================================//
-    //Kalman Filter
-    //result in error
-    if (theta_sen != 10) {
-      error = theta_sen;
-    }
-    //============================================================================//
-    //Transmit error
-    //process error to byte array
+
+    // ===================== ERROR =====================
+    if (theta_sen != 10) error = theta_sen;
+
     byte error_array[6];
-    for (int i = 0; i < 4; i++) {
-      error_array[i] = ((byte*)(&error))[i];
-    }
+    memcpy(error_array, &error, 4);
     error_array[4] = 0;
     error_array[5] = 1;
-    //send error to slave
     Wire.beginTransmission(SLAD);
     Wire.write(error_array, 6);
     Wire.endTransmission();
-    //============================================================================//
-    //PD output
+
+    // ===================== PD CONTROL =====================
     if (theta_sen != 10) {
-      double now = millis();
-      double dt = now - last_time;
-      double last_time = now;
+
+      now = millis();
+      dt = now - last_time;
+      last_time = now;
+
       float proportional = Kp * error;
-      //float derivative = Kd * (error - error_last) / dt;
-      float derivative = Kd * gyro_z;
+      float derivative = 0;
       float pd_output = proportional + derivative;
+
       error_last = error;
-      //============================================================================//
-      //Wrap the pd_output to motor command
-      motor_pwm = pd_output * 31.875;
-      //============================================================================//
-      //execute based on direction and pwm command (read if error was negitive, make positive for pd)
-      if (motor_pwm < 0) {
-        motor_pwm = fabs(motor_pwm);
-        digitalWrite(IN1, LOW);
-        digitalWrite(IN2, HIGH);
-        analogWrite(ENA, motor_pwm);
-      }
-      if (motor_pwm > 0) {
+
+      motor_pwm = abs(pd_output);
+      motor_pwm = constrain(motor_pwm, 0, 255);
+
+      if (pd_output > 0) {
         digitalWrite(IN1, HIGH);
         digitalWrite(IN2, LOW);
-        analogWrite(ENA, motor_pwm);
+      } else {
+        digitalWrite(IN1, LOW);
+        digitalWrite(IN2, HIGH);
       }
-      if (motor_pwm == 0) {
-        analogWrite(ENA, motor_pwm);
-      }
+      analogWrite(ENA, motor_pwm);
+
+      // SEND MOTOR PWM
+      byte motor_pwm_array[6];
+      memcpy(motor_pwm_array, &motor_pwm, 4);
+      motor_pwm_array[4] = 1;
+      motor_pwm_array[5] = 1;
+      Wire.beginTransmission(SLAD);
+      Wire.write(motor_pwm_array, 6);
+      Wire.endTransmission();
     }
-    //============================================================================//
-    //Transmit motor command
-    byte motor_pwm_array[6];
-    for (int i = 0; i < 4; i++) {
-      error_array[i] = ((byte*)(&motor_pwm))[i];
-    }
-    error_array[4] = 1;
-    error_array[5] = 1;
-    //send error to slave
-    Wire.beginTransmission(SLAD);
-    Wire.write(error_array, 6);
-    Wire.endTransmission();
-    //============================================================================//
+  }
+
+  // ===================== MODE: NEUTRAL =====================
   else if (RP_val > 1400 && RP_val < 1600) {
-    //no mode
-    //kill motor
     digitalWrite(IN1, LOW);
     digitalWrite(IN2, LOW);
     analogWrite(ENA, 0);
-  } else if (RP_val > 1800) {
-    //seb -leave gyro for now
-  } else {
-    //leave for now
+  }
+
+  // ===================== MODE: SPARE =====================
+  else if (RP_val > 1800) {
+    // reserved
+  }
+
+  // ===================== MODE: DEFAULT =====================
+  else {
+    // do nothing
   }
 }
