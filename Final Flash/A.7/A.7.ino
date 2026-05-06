@@ -50,7 +50,7 @@ Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS3472
 const int logic = 4;
 
 //Mode switch pin
-const int RP = 3;
+const int RP = 3; 
 const int RCRW = 9;  //for RC RW
 
 //motor control
@@ -60,7 +60,7 @@ const int IN2 = 7;  //only need to be H/L
 
 //LED pin
 const int LED = 8;
-const int handshake = 10;
+const int handshake = 13;
 
 //================================ DATA STRUCTURES ==============================//
 //Data struct
